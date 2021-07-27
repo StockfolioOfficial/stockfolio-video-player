@@ -1,4 +1,5 @@
 import PlayButton from "components/PlayButton";
+import StopButton from "components/StopButton";
 import React, { ReactElement, useRef, useState } from "react";
 import "./App.css";
 
@@ -6,7 +7,7 @@ function App(): ReactElement {
   const [playingState, setPalyingState] = useState(false);
   const videoRef = useRef<null | HTMLVideoElement>(null);
 
-  function playVideo(): void {
+  function playVideo() {
     if (videoRef.current === null) return;
     videoRef.current.play().catch(() => {
       console.error("플레이가 불가능합니다.");
@@ -17,6 +18,13 @@ function App(): ReactElement {
   function pauseVideo() {
     if (videoRef.current === null) return;
     videoRef.current.pause();
+    setPalyingState(false);
+  }
+
+  function stopVideo() {
+    if (videoRef.current === null) return;
+    videoRef.current.pause();
+    videoRef.current.currentTime = 0;
     setPalyingState(false);
   }
 
@@ -39,6 +47,7 @@ function App(): ReactElement {
         playEvent={playVideo}
         pauseEvent={pauseVideo}
       />
+      <StopButton stopVideo={stopVideo} />
     </div>
   );
 }

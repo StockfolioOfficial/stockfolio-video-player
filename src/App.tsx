@@ -1,3 +1,4 @@
+import MuteButton from "components/MuteButton";
 import PlayButton from "components/PlayButton";
 import StopButton from "components/StopButton";
 import React, { ReactElement, useRef, useState } from "react";
@@ -5,6 +6,7 @@ import "./App.css";
 
 function App(): ReactElement {
   const [playingState, setPalyingState] = useState(false);
+  const [muteState, setMuteState] = useState(true);
   const videoRef = useRef<null | HTMLVideoElement>(null);
 
   function playVideo() {
@@ -28,6 +30,18 @@ function App(): ReactElement {
     setPalyingState(false);
   }
 
+  function muteVideo() {
+    if (videoRef.current === null) return;
+    videoRef.current.muted = true;
+    setMuteState(true);
+  }
+
+  function unmuteVideo() {
+    if (videoRef.current === null) return;
+    videoRef.current.muted = false;
+    setMuteState(false);
+  }
+
   function endVideo() {
     setPalyingState(false);
   }
@@ -48,6 +62,11 @@ function App(): ReactElement {
         pauseEvent={pauseVideo}
       />
       <StopButton stopVideo={stopVideo} />
+      <MuteButton
+        muteState={muteState}
+        muteVideo={muteVideo}
+        unmuteVideo={unmuteVideo}
+      />
     </div>
   );
 }

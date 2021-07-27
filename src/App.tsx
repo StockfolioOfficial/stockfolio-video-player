@@ -1,26 +1,17 @@
-import React, { ReactElement } from "react";
-import logo from "./logo.svg";
+import React, { ReactElement, useRef } from "react";
 import "./App.css";
 
 function App(): ReactElement {
+  const videoRef = useRef<null | HTMLVideoElement>(null);
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit
-          <code>src/App.tsx</code>
-          and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <video ref={videoRef} muted>
+        <source
+          id="mp4"
+          src="https://ak.picdn.net/shutterstock/videos/1056468215/preview/stock-footage-top-view-of-drop-falls-into-water-and-diverging-circles-of-water-on-white-background-in-slow-motion.webm"
+          type="video/webm"
+        />
+      </video>
     </div>
   );
 }

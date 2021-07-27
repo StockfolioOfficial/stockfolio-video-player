@@ -2,8 +2,8 @@ import React from "react";
 
 interface PlayButtonProps {
   playing?: boolean;
-  playEvent?: () => void;
-  pauseEvent?: () => void;
+  playEvent: () => void;
+  pauseEvent: () => void;
 }
 
 function PlayButton({ playing, playEvent, pauseEvent }: PlayButtonProps) {
@@ -20,10 +20,6 @@ function PlayButton({ playing, playEvent, pauseEvent }: PlayButtonProps) {
   );
 }
 
-PlayButton.defaultProps = {
-  playing: undefined,
-  playEvent: undefined,
-  pauseEvent: undefined,
-};
+PlayButton.defaultProps = { playing: undefined };
 
 export default PlayButton;

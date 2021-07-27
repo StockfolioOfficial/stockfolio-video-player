@@ -35,6 +35,7 @@
         "object-curly-newline": ["error", { "multiline": true }],
         "import/extensions": "off",
         "import/no-unresolved": "off",
-        "linebreak-style": "off"
+        "linebreak-style": "off",
+        "@typescript-eslint/explicit-module-boundary-types": "off"
     }
 }

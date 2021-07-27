@@ -1,25 +1,22 @@
 import React from "react";
 
 interface PlayButtonProps {
-  playing?: boolean;
+  isPause: boolean;
   playEvent: () => void;
   pauseEvent: () => void;
 }
 
-function PlayButton({ playing, playEvent, pauseEvent }: PlayButtonProps) {
+function PlayButton({ isPause, playEvent, pauseEvent }: PlayButtonProps) {
   function clickPlayButton() {
-    if (playing === undefined || !playEvent || !pauseEvent) return;
-    if (playing) pauseEvent();
-    else playEvent();
+    if (isPause) playEvent();
+    else pauseEvent();
   }
 
   return (
     <button type="button" onClick={clickPlayButton}>
-      {playing ? "일시정지" : "재생"}
+      {isPause ? "재생" : "일시정지"}
     </button>
   );
 }
-
-PlayButton.defaultProps = { playing: undefined };
 
 export default PlayButton;

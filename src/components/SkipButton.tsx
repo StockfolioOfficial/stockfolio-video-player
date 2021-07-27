@@ -1,18 +1,22 @@
-import React, { HTMLAttributes } from "react";
+import React from "react";
 
 interface SkipButtonProps {
+  videoRef: HTMLVideoElement | null;
   skipTime: number;
-  skipVideo: (time: number) => void;
+  moveCurrentTime: (time: number) => void;
 }
 
 function SkipButton({
+  videoRef,
   skipTime,
-  skipVideo,
+  moveCurrentTime,
   children,
-}: SkipButtonProps & HTMLAttributes<HTMLButtonElement>) {
+}: SkipButtonProps & React.HTMLProps<HTMLButtonElement>) {
   function clickSkipButton() {
-    skipVideo(skipTime);
+    if (videoRef === null) return;
+    moveCurrentTime(videoRef.currentTime + skipTime);
   }
+
   return (
     <button type="button" onClick={clickSkipButton}>
       {children ||

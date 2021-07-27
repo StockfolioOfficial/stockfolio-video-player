@@ -2,67 +2,55 @@ import MuteButton from "components/MuteButton";
 import PlayButton from "components/PlayButton";
 import SkipButton from "components/SkipButton";
 import StopButton from "components/StopButton";
-import React, { ReactElement, useRef, useState } from "react";
+import React, { ReactElement, useState } from "react";
 import "./App.css";
 
 function App(): ReactElement {
-  const [playingState, setPalyingState] = useState(false);
-  const [muteState, setMuteState] = useState(true);
-  const videoRef = useRef<null | HTMLVideoElement>(null);
+  const [videoRef, setVideoRef] = useState<null | HTMLVideoElement>(null);
+  const [isPause, setIsPause] = useState(true);
+  const [isMute, setIsMute] = useState(true);
 
   function playVideo() {
-    if (videoRef.current === null) return;
-    videoRef.current.play().catch(() => {
-      console.error("플레이가 불가능합니다.");
-    });
-    setPalyingState(true);
+    if (videoRef === null) return;
+    videoRef
+      .play()
+      .then(() => {
+        setIsPause(false);
+      })
+      .catch(() => {
+        console.error("플레이가 불가능합니다.");
+      });
   }
 
   function pauseVideo() {
-    if (videoRef.current === null) return;
-    videoRef.current.pause();
-    setPalyingState(false);
+    if (videoRef === null) return;
+    videoRef.pause();
+    setIsPause(true);
   }
 
   function stopVideo() {
-    if (videoRef.current === null) return;
-    videoRef.current.pause();
-    videoRef.current.currentTime = 0;
-    setPalyingState(false);
-  }
-
-  function muteVideo() {
-    if (videoRef.current === null) return;
-    videoRef.current.muted = true;
-    setMuteState(true);
-  }
-
-  function unmuteVideo() {
-    if (videoRef.current === null) return;
-    videoRef.current.muted = false;
-    setMuteState(false);
+    if (videoRef === null) return;
+    pauseVideo();
+    videoRef.currentTime = 0;
   }
 
   function moveCurrentTime(targetTime: number) {
-    if (videoRef.current === null) return;
-    const { duration } = videoRef.current;
+    if (videoRef === null) return;
+    const { duration } = videoRef;
     let finalTime = targetTime < 0 ? 0 : targetTime;
     finalTime = finalTime > duration ? duration : finalTime;
-    videoRef.current.currentTime = finalTime;
+    videoRef.currentTime = finalTime;
   }
 
-  function skipVideo(skipTime: number) {
-    if (videoRef.current === null) return;
-    moveCurrentTime(videoRef.current.currentTime + skipTime);
-  }
-
-  function endVideo() {
-    setPalyingState(false);
+  function setMute(on: boolean) {
+    if (videoRef === null) return;
+    videoRef.muted = on;
+    setIsMute(on);
   }
 
   return (
     <div className="App">
-      <video ref={videoRef} onEnded={endVideo} muted>
+      <video ref={setVideoRef} muted>
         <source
           id="videoTestSoure"
           src="https://ak.picdn.net/shutterstock/videos/1056468215/preview/stock-footage-top-view-of-drop-falls-into-water-and-diverging-circles-of-water-on-white-background-in-slow-motion.webm"
@@ -71,18 +59,22 @@ function App(): ReactElement {
       </video>
       <br />
       <PlayButton
-        playing={playingState}
+        isPause={isPause}
         playEvent={playVideo}
         pauseEvent={pauseVideo}
       />
       <StopButton stopVideo={stopVideo} />
-      <MuteButton
-        muteState={muteState}
-        muteVideo={muteVideo}
-        unmuteVideo={unmuteVideo}
+      <MuteButton isMute={isMute} setMute={setMute} />
+      <SkipButton
+        videoRef={videoRef}
+        skipTime={-1}
+        moveCurrentTime={moveCurrentTime}
       />
-      <SkipButton skipTime={-1} skipVideo={skipVideo} />
-      <SkipButton skipTime={1} skipVideo={skipVideo} />
+      <SkipButton
+        videoRef={videoRef}
+        skipTime={1}
+        moveCurrentTime={moveCurrentTime}
+      />
     </div>
   );
 }

@@ -1,19 +1,17 @@
 import React from "react";
 
 interface MuteButtonProps {
-  muteState: boolean;
-  muteVideo: () => void;
-  unmuteVideo: () => void;
+  isMute: boolean;
+  setMute: (on: boolean) => void;
 }
 
-function MuteButton({ muteState, muteVideo, unmuteVideo }: MuteButtonProps) {
+function MuteButton({ isMute, setMute }: MuteButtonProps) {
   function clickMuteButton() {
-    if (muteState) unmuteVideo();
-    else muteVideo();
+    setMute(!isMute);
   }
   return (
     <button type="button" onClick={clickMuteButton}>
-      {muteState ? "음소거 해제" : "음소거"}
+      {isMute ? "음소거 해제" : "음소거"}
     </button>
   );
 }

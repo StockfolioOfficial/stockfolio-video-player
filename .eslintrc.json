@@ -31,7 +31,7 @@
         "react/jsx-filename-extension": [1, { "extensions": [".tsx", ".jsx"] }],
         "no-use-before-define": "off",
         "@typescript-eslint/no-use-before-define": ["error"],
-        "comma-dangle": ["error", "never"],
+        "comma-dangle": ["error", "only-multiline"],
         "object-curly-newline": ["error", { "multiline": true }],
         "import/extensions": "off",
         "import/no-unresolved": "off",

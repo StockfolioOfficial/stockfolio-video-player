@@ -1,5 +1,6 @@
 import MuteButton from "components/MuteButton";
 import PlayButton from "components/PlayButton";
+import SkipButton from "components/SkipButton";
 import StopButton from "components/StopButton";
 import React, { ReactElement, useRef, useState } from "react";
 import "./App.css";
@@ -42,6 +43,19 @@ function App(): ReactElement {
     setMuteState(false);
   }
 
+  function moveCurrentTime(targetTime: number) {
+    if (videoRef.current === null) return;
+    const { duration } = videoRef.current;
+    let finalTime = targetTime < 0 ? 0 : targetTime;
+    finalTime = finalTime > duration ? duration : finalTime;
+    videoRef.current.currentTime = finalTime;
+  }
+
+  function skipVideo(skipTime: number) {
+    if (videoRef.current === null) return;
+    moveCurrentTime(videoRef.current.currentTime + skipTime);
+  }
+
   function endVideo() {
     setPalyingState(false);
   }
@@ -67,6 +81,8 @@ function App(): ReactElement {
         muteVideo={muteVideo}
         unmuteVideo={unmuteVideo}
       />
+      <SkipButton skipTime={-1} skipVideo={skipVideo} />
+      <SkipButton skipTime={1} skipVideo={skipVideo} />
     </div>
   );
 }

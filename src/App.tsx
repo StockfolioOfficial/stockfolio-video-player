@@ -49,9 +49,15 @@ function App(): ReactElement {
     setIsMute(on);
   }
 
+  function clickVideo() {
+    if (videoRef === null) return;
+    if (videoRef.paused) playVideo();
+    else pauseVideo();
+  }
+
   return (
     <div className="App">
-      <video ref={setVideoRef} muted>
+      <video ref={setVideoRef} onClick={clickVideo} muted>
         <source
           id="videoTestSoure"
           src="https://ak.picdn.net/shutterstock/videos/1056468215/preview/stock-footage-top-view-of-drop-falls-into-water-and-diverging-circles-of-water-on-white-background-in-slow-motion.webm"
@@ -77,6 +83,7 @@ function App(): ReactElement {
         moveCurrentTime={moveCurrentTime}
       />
       <FullscreenButton videoRef={videoRef} />
+      <br />
     </div>
   );
 }

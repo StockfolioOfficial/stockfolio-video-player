@@ -32,14 +32,14 @@ function ControlBar({
     }
   }
 
-  function timeUpdate() {
+  function timeUpdateVideo() {
     if (videoRef === null) return;
     setCurrentTime(videoRef.currentTime);
   }
 
   useEffect(() => {
     if (videoRef === null) return;
-    videoRef.addEventListener("timeupdate", timeUpdate);
+    videoRef.addEventListener("timeupdate", timeUpdateVideo);
   }, [videoRef]);
 
   useEffect(() => {

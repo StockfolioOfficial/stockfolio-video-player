@@ -1,3 +1,4 @@
+import FullscreenButton from "components/FullscreenButton";
 import MuteButton from "components/MuteButton";
 import PlayButton from "components/PlayButton";
 import SkipButton from "components/SkipButton";
@@ -75,6 +76,7 @@ function App(): ReactElement {
         skipTime={1}
         moveCurrentTime={moveCurrentTime}
       />
+      <FullscreenButton videoRef={videoRef} />
     </div>
   );
 }

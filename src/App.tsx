@@ -1,3 +1,4 @@
+import ControlBar from "components/ControlBar";
 import FullscreenButton from "components/FullscreenButton";
 import MuteButton from "components/MuteButton";
 import PlayButton from "components/PlayButton";
@@ -84,6 +85,12 @@ function App(): ReactElement {
       />
       <FullscreenButton videoRef={videoRef} />
       <br />
+      <ControlBar
+        videoRef={videoRef}
+        moveCurrentTime={moveCurrentTime}
+        playVideo={playVideo}
+        pauseVideo={pauseVideo}
+      />
     </div>
   );
 }

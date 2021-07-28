@@ -1,0 +1,12 @@
+#ControlBar {
+  height: 8px;
+  margin-top: 5px;
+  background: #aaa;
+  cursor: pointer;
+}
+
+#ProgressBar {
+  width: 0;
+  height: 8px;
+  background: #666;
+}

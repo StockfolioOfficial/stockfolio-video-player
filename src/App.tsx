@@ -2,6 +2,7 @@ import ControlBar from "components/ControlBar";
 import FullscreenButton from "components/FullscreenButton";
 import MuteButton from "components/MuteButton";
 import PlayButton from "components/PlayButton";
+import RepeatBar from "components/RepeatBar";
 import SkipButton from "components/SkipButton";
 import StopButton from "components/StopButton";
 import React, { ReactElement, useState } from "react";
@@ -67,6 +68,8 @@ function App(): ReactElement {
         moveCurrentTime={moveCurrentTime}
         skipTime={skipTime}
       />
+      <br />
+      <RepeatBar videoRef={videoRef} moveCurrentTime={moveCurrentTime} />
     </div>
   );
 }

@@ -62,12 +62,11 @@ function App(): ReactElement {
       />
       <FullscreenButton videoRef={videoRef} />
       <br />
-      {/* <ControlBar
+      <ControlBar
         videoRef={videoRef}
         moveCurrentTime={moveCurrentTime}
-        playVideo={playVideo}
-        pauseVideo={pauseVideo}
-      /> */}
+        skipTime={skipTime}
+      />
     </div>
   );
 }

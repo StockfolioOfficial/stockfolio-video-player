@@ -3,18 +3,19 @@ import "./ControlBar.css";
 
 interface ControlBarProps {
   videoRef: HTMLVideoElement | null;
-  moveCurrentTime: (target: number) => void;
-  playVideo: () => void;
-  pauseVideo: () => void;
+  moveCurrentTime: (time: number) => void;
+  skipTime: number;
 }
 
-function ControlBar({
-  videoRef,
-  moveCurrentTime,
-  playVideo,
-  pauseVideo,
-}: ControlBarProps) {
+function ControlBar({ videoRef, moveCurrentTime, skipTime }: ControlBarProps) {
   const progressBarRef = useRef<HTMLDivElement | null>(null);
+
+  function playVideo() {
+    if (videoRef === null) return;
+    videoRef.play().catch(() => {
+      console.error("동영상을 재생할 수 없습니다.", "Control-bar");
+    });
+  }
 
   function mouseDownControlBar(e: React.MouseEvent<HTMLDivElement>) {
     if (videoRef === null) return;
@@ -22,7 +23,7 @@ function ControlBar({
     const { duration, paused } = videoRef;
     let currentRate = e.pageX - offsetLeft;
     moveCurrentTime(duration * (currentRate / clientWidth));
-    if (!paused) pauseVideo();
+    if (!paused) videoRef.pause();
 
     function mouseMoveControlBar(em: MouseEvent) {
       if (currentRate === em.pageX - offsetLeft) return;
@@ -42,11 +43,13 @@ function ControlBar({
 
   function keyDownControlBar(e: React.KeyboardEvent) {
     if (videoRef === null) return;
-    if (e.code === "ArrowRight") moveCurrentTime(videoRef.currentTime + 1);
-    if (e.code === "ArrowLeft") moveCurrentTime(videoRef.currentTime - 1);
+    if (e.code === "ArrowRight")
+      moveCurrentTime(videoRef.currentTime + skipTime);
+    if (e.code === "ArrowLeft")
+      moveCurrentTime(videoRef.currentTime - skipTime);
     if (e.code === "Enter" || e.code === "Space") {
       if (videoRef.paused) playVideo();
-      else pauseVideo();
+      else videoRef.pause();
     }
   }
 

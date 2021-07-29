@@ -88,8 +88,7 @@ function App(): ReactElement {
       <ControlBar
         videoRef={videoRef}
         moveCurrentTime={moveCurrentTime}
-        playVideo={playVideo}
-        pauseVideo={pauseVideo}
+        skipTime={1}
       />
     </div>
   );

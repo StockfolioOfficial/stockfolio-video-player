@@ -9,31 +9,13 @@ import "./App.css";
 
 function App(): ReactElement {
   const [videoRef, setVideoRef] = useState<null | HTMLVideoElement>(null);
-  const [isPause, setIsPause] = useState(true);
-  const [isMute, setIsMute] = useState(true);
+  const skipTime = 1;
 
   function playVideo() {
     if (videoRef === null) return;
-    videoRef
-      .play()
-      .then(() => {
-        setIsPause(false);
-      })
-      .catch(() => {
-        console.error("플레이가 불가능합니다.");
-      });
-  }
-
-  function pauseVideo() {
-    if (videoRef === null) return;
-    videoRef.pause();
-    setIsPause(true);
-  }
-
-  function stopVideo() {
-    if (videoRef === null) return;
-    pauseVideo();
-    videoRef.currentTime = 0;
+    videoRef.play().catch(() => {
+      console.error("플레이가 불가능합니다.");
+    });
   }
 
   function moveCurrentTime(targetTime: number) {
@@ -47,13 +29,12 @@ function App(): ReactElement {
   function setMute(on: boolean) {
     if (videoRef === null) return;
     videoRef.muted = on;
-    setIsMute(on);
   }
 
   function clickVideo() {
     if (videoRef === null) return;
     if (videoRef.paused) playVideo();
-    else pauseVideo();
+    else videoRef.pause();
   }
 
   return (
@@ -66,31 +47,27 @@ function App(): ReactElement {
         />
       </video>
       <br />
-      <PlayButton
-        isPause={isPause}
-        playEvent={playVideo}
-        pauseEvent={pauseVideo}
-      />
-      <StopButton stopVideo={stopVideo} />
-      <MuteButton isMute={isMute} setMute={setMute} />
+      <PlayButton videoRef={videoRef} />
+      <StopButton videoRef={videoRef} moveCurrentTime={moveCurrentTime} />
+      <MuteButton videoRef={videoRef} setMute={setMute} />
       <SkipButton
         videoRef={videoRef}
-        skipTime={-1}
         moveCurrentTime={moveCurrentTime}
+        skipTime={-skipTime}
       />
       <SkipButton
         videoRef={videoRef}
-        skipTime={1}
         moveCurrentTime={moveCurrentTime}
+        skipTime={skipTime}
       />
       <FullscreenButton videoRef={videoRef} />
       <br />
-      <ControlBar
+      {/* <ControlBar
         videoRef={videoRef}
         moveCurrentTime={moveCurrentTime}
         playVideo={playVideo}
         pauseVideo={pauseVideo}
-      />
+      /> */}
     </div>
   );
 }

@@ -15,10 +15,16 @@
   display: flex;
   justify-content: space-between;
   background: #aaa;
+  cursor: pointer;
 }
 
 .RepeatItem .start, .RepeatItem .end {
   width: 10px;
   height: 8px;
   background: #888;
+  cursor: pointer;
+}
+
+.RepeatItem .start.hover, .RepeatItem .end.hover {
+  transform: scale(1.5);
 }

@@ -9,6 +9,8 @@ import React, { ReactElement, useState } from "react";
 import "./App.css";
 
 function App(): ReactElement {
+  // const [starting, setStarting] = useState(0);
+  const [repeatOn, changeRepeatOn] = useState(false);
   const [videoRef, setVideoRef] = useState<null | HTMLVideoElement>(null);
   const skipTime = 1;
 
@@ -68,8 +70,14 @@ function App(): ReactElement {
         moveCurrentTime={moveCurrentTime}
         skipTime={skipTime}
       />
-      <br />
-      <RepeatBar videoRef={videoRef} moveCurrentTime={moveCurrentTime} />
+      <div>
+        <button type="button" onClick={() => changeRepeatOn(!repeatOn)}>
+          구간반복 on/off
+        </button>
+      </div>
+      {repeatOn && (
+        <RepeatBar videoRef={videoRef} moveCurrentTime={moveCurrentTime} />
+      )}
     </div>
   );
 }

@@ -8,20 +8,28 @@ interface RepeatBarProps {
 
 function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
   const minTime = 1;
-  const [startTime, setStartTime] = useState(0);
-  const [endTime, setEndTime] = useState(0 + minTime);
+  const [repeatTime, setRepeatTime] = useState({
+    startTime: 0,
+    endTime: 0 + minTime,
+  });
   const repeatBarRef = useRef<HTMLDivElement | null>(null);
   const repeatItemRef = useRef<HTMLDivElement | null>(null);
 
-  function repeatVideo() {
+  function setVideoCurrentTime() {
     if (videoRef === null) return;
-    if (videoRef.currentTime < startTime || videoRef.currentTime >= endTime)
-      moveCurrentTime(startTime);
+    const { startTime, endTime } = repeatTime;
+    if (videoRef.currentTime < startTime) moveCurrentTime(startTime);
+    if (videoRef.currentTime > endTime) moveCurrentTime(endTime);
+  }
 
-    if (!videoRef.paused) window.requestAnimationFrame(repeatVideo);
+  function repeatVideo() {
+    const { startTime, endTime } = repeatTime;
+    if (videoRef === null) return;
+    if (videoRef.currentTime > endTime) moveCurrentTime(startTime);
   }
 
   function changeItemPosition() {
+    const { startTime, endTime } = repeatTime;
     if (videoRef === null || repeatItemRef.current === null) return;
     const { current: $item } = repeatItemRef;
     $item.style.left = `${(startTime / videoRef.duration) * 100}%`;
@@ -38,21 +46,28 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
       repeatBarRef.current === null
     )
       return;
-    e.stopPropagation();
+    if (e.currentTarget !== e.target) return;
     const { clientWidth: barWidth, offsetLeft: barLeft } = repeatBarRef.current;
     const { clientWidth: itemWidth, offsetLeft: itemLeft } =
       repeatItemRef.current;
     const { duration } = videoRef;
     const minLength = (barWidth * minTime) / duration;
-    let edgePoint =
-      target === "start" ? barLeft + itemLeft : barLeft + itemLeft + itemWidth;
-    const pointerToEdge =
-      target === "start" ? e.pageX - edgePoint : edgePoint - e.pageX;
+    let edgePoint = 0;
+    let pointerToEdge = 0;
     let limitStart = barLeft;
     let limitEnd = barLeft + barWidth;
 
-    if (target === "start") limitEnd = edgePoint + itemWidth - minLength;
-    else limitStart = edgePoint - itemWidth + minLength;
+    if (!videoRef.paused) videoRef.pause();
+
+    if (target === "start") {
+      edgePoint = barLeft + itemLeft;
+      pointerToEdge = e.pageX - edgePoint;
+      limitEnd = edgePoint + itemWidth - minLength;
+    } else {
+      edgePoint = barLeft + itemLeft + itemWidth;
+      pointerToEdge = edgePoint - e.pageX;
+      limitStart = edgePoint - itemWidth + minLength;
+    }
 
     function mouseMoveEdge(em: MouseEvent) {
       let afterEdgePoint =
@@ -66,9 +81,9 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
 
       const changeTime = duration * ((edgePoint - barLeft) / barWidth);
       if (target === "start") {
-        setStartTime(changeTime);
+        setRepeatTime({ ...repeatTime, startTime: changeTime });
       } else {
-        setEndTime(changeTime);
+        setRepeatTime({ ...repeatTime, endTime: changeTime });
       }
       moveCurrentTime(changeTime);
     }
@@ -83,6 +98,7 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
   }
 
   function mouseDownItem(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget) return;
     if (
       videoRef === null ||
       repeatItemRef.current === null ||
@@ -95,6 +111,8 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
     const { duration } = videoRef;
     let itemStart = barLeft + itemLeft;
     let itemEnd = itemStart + itemWidth;
+
+    if (!videoRef.paused) videoRef.pause();
 
     function mouseMoveItem(em: MouseEvent) {
       let afterStart = em.pageX - e.nativeEvent.offsetX;
@@ -113,8 +131,10 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
       itemStart = afterStart;
       itemEnd = afterEnd;
 
-      setStartTime(duration * ((itemStart - barLeft) / barWidth));
-      setEndTime(duration * ((itemEnd - barLeft) / barWidth));
+      setRepeatTime({
+        startTime: duration * ((itemStart - barLeft) / barWidth),
+        endTime: duration * ((itemEnd - barLeft) / barWidth),
+      });
       moveCurrentTime(duration * ((itemStart - barLeft) / barWidth));
     }
 
@@ -129,25 +149,21 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
 
   useEffect(() => {
     if (videoRef === null) return;
-    function initSetPosition() {
-      if (videoRef === null) return;
-      if (videoRef.currentTime < startTime) moveCurrentTime(startTime);
-      if (videoRef.currentTime > endTime) moveCurrentTime(endTime);
-      changeItemPosition();
-      videoRef.removeEventListener("canplay", initSetPosition);
-    }
-    videoRef.addEventListener("canplay", initSetPosition);
+    setVideoCurrentTime();
   }, [videoRef]);
 
   useEffect(() => {
     if (videoRef === null || repeatItemRef.current === null) return undefined;
+    const updateEvent = () => window.requestAnimationFrame(repeatVideo);
+    const pauseEvent = () => window.cancelAnimationFrame(updateEvent());
+
     changeItemPosition();
-    videoRef.addEventListener("timeupdate", repeatVideo);
-    repeatVideo();
+    videoRef.addEventListener("timeupdate", updateEvent);
     return () => {
-      videoRef.removeEventListener("timeupdate", repeatVideo);
+      pauseEvent();
+      videoRef.removeEventListener("timeupdate", updateEvent);
     };
-  }, [startTime, endTime, videoRef, repeatItemRef]);
+  }, [repeatTime, videoRef, repeatItemRef]);
 
   return (
     <div id="RepeatBar" ref={repeatBarRef}>

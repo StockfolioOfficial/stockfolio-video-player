@@ -10,6 +10,12 @@ interface ControlBarProps {
     startTime: number;
     endTime: number;
   };
+  setRepeatTime: React.Dispatch<
+    React.SetStateAction<{
+      startTime: number;
+      endTime: number;
+    }>
+  >;
 }
 
 function ControlBar({
@@ -18,6 +24,7 @@ function ControlBar({
   skipTime,
   repeatOn,
   repeatTime,
+  setRepeatTime,
 }: ControlBarProps) {
   const progressBarRef = useRef<HTMLDivElement | null>(null);
   const startDimmedRef = useRef<HTMLDivElement | null>(null);
@@ -30,19 +37,50 @@ function ControlBar({
     });
   }
 
+  function changeRepeatTime(targetTime: number) {
+    if (videoRef === null) return;
+    const repeatTimeLength = repeatTime.endTime - repeatTime.startTime;
+    let afterRepeatStartTime = targetTime - repeatTimeLength / 2;
+    let afterRepeatEndTime = targetTime + repeatTimeLength / 2;
+
+    if (afterRepeatStartTime < 0) {
+      afterRepeatStartTime = 0;
+      afterRepeatEndTime = repeatTimeLength;
+    } else if (afterRepeatEndTime > videoRef.duration) {
+      afterRepeatStartTime = videoRef.duration - repeatTimeLength;
+      afterRepeatEndTime = videoRef.duration;
+    }
+
+    setRepeatTime({
+      startTime: afterRepeatStartTime,
+      endTime: afterRepeatEndTime,
+    });
+  }
+
   function mouseDownControlBar(e: React.MouseEvent<HTMLDivElement>) {
     if (videoRef === null) return;
     const { clientWidth, offsetLeft } = e.currentTarget;
     const { duration, paused } = videoRef;
-    let currentRate = e.pageX - offsetLeft;
+    let targetTimeLength = e.pageX - offsetLeft;
+    let targetTime = duration * (targetTimeLength / clientWidth);
+    const isChangeRepeatTime =
+      repeatOn &&
+      (targetTime < repeatTime.startTime || targetTime > repeatTime.endTime);
 
-    moveCurrentTime(duration * (currentRate / clientWidth));
     if (!paused) videoRef.pause();
+    if (isChangeRepeatTime) {
+      changeRepeatTime(targetTime);
+    }
+    moveCurrentTime(targetTime);
 
     function mouseMoveControlBar(em: MouseEvent) {
-      if (currentRate === em.pageX - offsetLeft) return;
-      currentRate = em.pageX - offsetLeft;
-      moveCurrentTime(duration * (currentRate / clientWidth));
+      if (targetTimeLength === em.pageX - offsetLeft) return;
+      targetTimeLength = em.pageX - offsetLeft;
+      targetTime = duration * (targetTimeLength / clientWidth);
+      if (isChangeRepeatTime) {
+        changeRepeatTime(targetTime);
+      }
+      moveCurrentTime(targetTime);
     }
 
     function mouseUpControlBar() {

@@ -76,6 +76,7 @@ function App(): ReactElement {
         skipTime={skipTime}
         repeatOn={repeatOn}
         repeatTime={repeatTime}
+        setRepeatTime={setRepeatTime}
       />
       <div>
         <button

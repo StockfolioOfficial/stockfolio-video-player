@@ -55,7 +55,12 @@ function App(): ReactElement {
       </video>
       <br />
       <PlayButton videoRef={videoRef} />
-      <StopButton videoRef={videoRef} moveCurrentTime={moveCurrentTime} />
+      <StopButton
+        videoRef={videoRef}
+        moveCurrentTime={moveCurrentTime}
+        repeatOn={repeatOn}
+        startTime={repeatTime.startTime}
+      />
       <MuteButton videoRef={videoRef} setMute={setMute} />
       <SkipButton
         videoRef={videoRef}

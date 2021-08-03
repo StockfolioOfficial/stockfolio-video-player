@@ -37,11 +37,33 @@ function ControlBar({
     });
   }
 
-  function changeRepeatTime(targetTime: number) {
+  function timeUpdateVideo() {
+    if (videoRef === null || progressBarRef.current === null) return;
+    progressBarRef.current.style.transform = `scaleX(${
+      (videoRef.currentTime / videoRef.duration) * 100
+    }%)`;
+
+    if (!videoRef.paused) window.requestAnimationFrame(timeUpdateVideo);
+  }
+
+  function changeRepeatTime(
+    targetTime: number,
+    targetOrigin?: "start" | "end"
+  ) {
     if (videoRef === null) return;
     const repeatTimeLength = repeatTime.endTime - repeatTime.startTime;
     let afterRepeatStartTime = targetTime - repeatTimeLength / 2;
     let afterRepeatEndTime = targetTime + repeatTimeLength / 2;
+
+    if (targetOrigin === "start") {
+      afterRepeatStartTime = targetTime;
+      afterRepeatEndTime = targetTime + repeatTimeLength;
+    }
+
+    if (targetOrigin === "end") {
+      afterRepeatStartTime = targetTime - repeatTimeLength;
+      afterRepeatEndTime = targetTime;
+    }
 
     if (afterRepeatStartTime < 0) {
       afterRepeatStartTime = 0;
@@ -72,15 +94,27 @@ function ControlBar({
       changeRepeatTime(targetTime);
     }
     moveCurrentTime(targetTime);
+    timeUpdateVideo();
 
     function mouseMoveControlBar(em: MouseEvent) {
+      em.preventDefault();
       if (targetTimeLength === em.pageX - offsetLeft) return;
       targetTimeLength = em.pageX - offsetLeft;
       targetTime = duration * (targetTimeLength / clientWidth);
       if (isChangeRepeatTime) {
         changeRepeatTime(targetTime);
       }
+      if (
+        targetTime < repeatTime.startTime ||
+        targetTime > repeatTime.endTime
+      ) {
+        changeRepeatTime(
+          targetTime,
+          targetTime < repeatTime.startTime ? "start" : "end"
+        );
+      }
       moveCurrentTime(targetTime);
+      timeUpdateVideo();
     }
 
     function mouseUpControlBar() {
@@ -95,31 +129,30 @@ function ControlBar({
 
   function keyDownControlBar(e: React.KeyboardEvent) {
     if (videoRef === null) return;
-    if (e.code === "ArrowRight")
-      moveCurrentTime(
-        repeatOn && videoRef.currentTime + skipTime > repeatTime.endTime
-          ? repeatTime.endTime
-          : videoRef.currentTime + skipTime
-      );
-    if (e.code === "ArrowLeft")
-      moveCurrentTime(
-        repeatOn && videoRef.currentTime - skipTime < repeatTime.startTime
-          ? repeatTime.startTime
-          : videoRef.currentTime - skipTime
-      );
-    if (e.code === "Enter" || e.code === "Space") {
-      if (videoRef.paused) playVideo();
-      else videoRef.pause();
+    switch (e.code) {
+      case "ArrowRight":
+        moveCurrentTime(
+          repeatOn && videoRef.currentTime + skipTime > repeatTime.endTime
+            ? repeatTime.endTime
+            : videoRef.currentTime + skipTime
+        );
+        break;
+      case "ArrowLeft":
+        moveCurrentTime(
+          repeatOn && videoRef.currentTime - skipTime < repeatTime.startTime
+            ? repeatTime.startTime
+            : videoRef.currentTime - skipTime
+        );
+        break;
+      case "Enter":
+      case "Space":
+        if (videoRef.paused) playVideo();
+        else videoRef.pause();
+        break;
+      default:
+        console.log(e.code);
     }
-  }
-
-  function timeUpdateVideo() {
-    if (videoRef === null || progressBarRef.current === null) return;
-    progressBarRef.current.style.transform = `scaleX(${
-      (videoRef.currentTime / videoRef.duration) * 100
-    }%)`;
-
-    if (!videoRef.paused) window.requestAnimationFrame(timeUpdateVideo);
+    timeUpdateVideo();
   }
 
   useEffect(() => {

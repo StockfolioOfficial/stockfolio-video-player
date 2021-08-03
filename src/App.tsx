@@ -64,13 +64,17 @@ function App(): ReactElement {
       <MuteButton videoRef={videoRef} setMute={setMute} />
       <SkipButton
         videoRef={videoRef}
-        moveCurrentTime={moveCurrentTime}
         skipTime={-skipTime}
+        moveCurrentTime={moveCurrentTime}
+        repeatOn={repeatOn}
+        repeatTime={repeatTime}
       />
       <SkipButton
         videoRef={videoRef}
-        moveCurrentTime={moveCurrentTime}
         skipTime={skipTime}
+        moveCurrentTime={moveCurrentTime}
+        repeatOn={repeatOn}
+        repeatTime={repeatTime}
       />
       <FullscreenButton videoRef={videoRef} />
       <br />

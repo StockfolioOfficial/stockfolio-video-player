@@ -9,8 +9,12 @@ import React, { ReactElement, useState } from "react";
 import "./App.css";
 
 function App(): ReactElement {
-  // const [starting, setStarting] = useState(0);
   const [repeatOn, changeRepeatOn] = useState(false);
+  const minTime = 1;
+  const [repeatTime, setRepeatTime] = useState({
+    startTime: 0,
+    endTime: 0 + minTime,
+  });
   const [videoRef, setVideoRef] = useState<null | HTMLVideoElement>(null);
   const skipTime = 1;
 
@@ -69,6 +73,8 @@ function App(): ReactElement {
         videoRef={videoRef}
         moveCurrentTime={moveCurrentTime}
         skipTime={skipTime}
+        repeatOn={repeatOn}
+        repeatTime={repeatTime}
       />
       <div>
         <button type="button" onClick={() => changeRepeatOn(!repeatOn)}>
@@ -76,7 +82,13 @@ function App(): ReactElement {
         </button>
       </div>
       {repeatOn && (
-        <RepeatBar videoRef={videoRef} moveCurrentTime={moveCurrentTime} />
+        <RepeatBar
+          videoRef={videoRef}
+          repeatTime={repeatTime}
+          setRepeatTime={setRepeatTime}
+          minTime={minTime}
+          moveCurrentTime={moveCurrentTime}
+        />
       )}
     </div>
   );

@@ -1,17 +1,29 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import "./RepeatBar.css";
 
 interface RepeatBarProps {
+  repeatTime: {
+    startTime: number;
+    endTime: number;
+  };
+  setRepeatTime: React.Dispatch<
+    React.SetStateAction<{
+      startTime: number;
+      endTime: number;
+    }>
+  >;
+  minTime: number;
   videoRef: HTMLVideoElement | null;
   moveCurrentTime: (time: number) => void;
 }
 
-function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
-  const minTime = 1;
-  const [repeatTime, setRepeatTime] = useState({
-    startTime: 0,
-    endTime: 0 + minTime,
-  });
+function RepeatBar({
+  repeatTime,
+  setRepeatTime,
+  minTime,
+  videoRef,
+  moveCurrentTime,
+}: RepeatBarProps) {
   const repeatBarRef = useRef<HTMLDivElement | null>(null);
   const repeatItemRef = useRef<HTMLDivElement | null>(null);
 

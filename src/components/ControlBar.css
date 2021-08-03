@@ -1,14 +1,34 @@
-#ControlBar {
+#controlBar {
   width: 80%;
   height: 8px;
+  position: relative;
   margin: 5px auto;
   background: #aaa;
   cursor: pointer;
 }
 
-#ProgressBar {
+#progressBar {
   height: 8px;
   transform: ScaleX(0);
   transform-origin: left;
   background: #666;
+}
+
+#startDimmed,
+#endDimmed {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  background: #000;
+  opacity: 0.5;
+  transform: scaleX(0);
+}
+
+#startDimmed {
+  transform-origin: left;
+}
+
+#endDimmed {
+  transform-origin: right;
 }

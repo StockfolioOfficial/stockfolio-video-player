@@ -35,6 +35,7 @@ function ControlBar({
     const { clientWidth, offsetLeft } = e.currentTarget;
     const { duration, paused } = videoRef;
     let currentRate = e.pageX - offsetLeft;
+
     moveCurrentTime(duration * (currentRate / clientWidth));
     if (!paused) videoRef.pause();
 
@@ -57,9 +58,17 @@ function ControlBar({
   function keyDownControlBar(e: React.KeyboardEvent) {
     if (videoRef === null) return;
     if (e.code === "ArrowRight")
-      moveCurrentTime(videoRef.currentTime + skipTime);
+      moveCurrentTime(
+        repeatOn && videoRef.currentTime + skipTime > repeatTime.endTime
+          ? repeatTime.endTime
+          : videoRef.currentTime + skipTime
+      );
     if (e.code === "ArrowLeft")
-      moveCurrentTime(videoRef.currentTime - skipTime);
+      moveCurrentTime(
+        repeatOn && videoRef.currentTime - skipTime < repeatTime.startTime
+          ? repeatTime.startTime
+          : videoRef.currentTime - skipTime
+      );
     if (e.code === "Enter" || e.code === "Space") {
       if (videoRef.paused) playVideo();
       else videoRef.pause();
@@ -71,11 +80,16 @@ function ControlBar({
     progressBarRef.current.style.transform = `scaleX(${
       (videoRef.currentTime / videoRef.duration) * 100
     }%)`;
+
+    if (!videoRef.paused) window.requestAnimationFrame(timeUpdateVideo);
   }
 
   useEffect(() => {
-    if (videoRef === null) return;
-    videoRef.addEventListener("timeupdate", timeUpdateVideo);
+    if (videoRef === null) return undefined;
+    videoRef.addEventListener("playing", timeUpdateVideo);
+    return () => {
+      videoRef.removeEventListener("playing", timeUpdateVideo);
+    };
   }, [videoRef]);
 
   useEffect(() => {
@@ -116,8 +130,8 @@ function ControlBar({
       tabIndex={0}
     >
       <div id="progressBar" ref={progressBarRef} />
-      <div id="startDimmed" ref={startDimmedRef} />
-      <div id="endDimmed" ref={endDimmedRef} />
+      <div id="startDimmed" className="dimmed" ref={startDimmedRef} />
+      <div id="endDimmed" className="dimmed" ref={endDimmedRef} />
     </div>
   );
 }

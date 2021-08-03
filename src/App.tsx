@@ -11,6 +11,7 @@ import "./App.css";
 function App(): ReactElement {
   const [repeatOn, changeRepeatOn] = useState(false);
   const minTime = 1;
+  const maxTime = 15;
   const [repeatTime, setRepeatTime] = useState({
     startTime: 0,
     endTime: 0 + minTime,

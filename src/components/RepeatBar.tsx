@@ -26,6 +26,8 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
     const { startTime, endTime } = repeatTime;
     if (videoRef === null) return;
     if (videoRef.currentTime > endTime) moveCurrentTime(startTime);
+
+    if (!videoRef.paused) window.requestAnimationFrame(repeatVideo);
   }
 
   function changeItemPosition() {
@@ -154,14 +156,10 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
 
   useEffect(() => {
     if (videoRef === null || repeatItemRef.current === null) return undefined;
-    const updateEvent = () => window.requestAnimationFrame(repeatVideo);
-    const pauseEvent = () => window.cancelAnimationFrame(updateEvent());
-
     changeItemPosition();
-    videoRef.addEventListener("timeupdate", updateEvent);
+    videoRef.addEventListener("playing", repeatVideo);
     return () => {
-      pauseEvent();
-      videoRef.removeEventListener("timeupdate", updateEvent);
+      videoRef.removeEventListener("playing", repeatVideo);
     };
   }, [repeatTime, videoRef, repeatItemRef]);
 

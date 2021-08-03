@@ -77,7 +77,14 @@ function App(): ReactElement {
         repeatTime={repeatTime}
       />
       <div>
-        <button type="button" onClick={() => changeRepeatOn(!repeatOn)}>
+        <button
+          type="button"
+          onClick={() => {
+            if (videoRef === null) return;
+            videoRef.pause();
+            changeRepeatOn(!repeatOn);
+          }}
+        >
           구간반복 on/off
         </button>
       </div>

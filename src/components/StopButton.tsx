@@ -3,13 +3,20 @@ import React from "react";
 interface StopButtonProps {
   videoRef: HTMLVideoElement | null;
   moveCurrentTime: (time: number) => void;
+  repeatOn: boolean;
+  startTime: number;
 }
 
-function StopButton({ videoRef, moveCurrentTime }: StopButtonProps) {
+function StopButton({
+  videoRef,
+  moveCurrentTime,
+  repeatOn,
+  startTime,
+}: StopButtonProps) {
   function stopVideo() {
     if (videoRef === null) return;
     videoRef.pause();
-    moveCurrentTime(0);
+    moveCurrentTime(repeatOn ? startTime : 0);
   }
 
   return (

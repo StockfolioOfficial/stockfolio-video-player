@@ -181,6 +181,7 @@ function RepeatBar({
     }
 
     function mouseMoveEdge(em: MouseEvent) {
+      em.preventDefault();
       let afterEdgePoint =
         target === "start"
           ? em.pageX - pointerToEdge
@@ -190,13 +191,16 @@ function RepeatBar({
       if (afterEdgePoint === edgePosition) return;
       edgePosition = afterEdgePoint;
 
-      // const changeTime = duration * ((edgePosition - barLeft) / barWidth);
-      // if (target === "start") {
-      //   setRepeatTime({ ...repeatTime, startTime: changeTime });
-      // } else {
-      //   setRepeatTime({ ...repeatTime, endTime: changeTime });
-      // }
-      // moveCurrentTime(changeTime);
+      const convertedTime =
+        (duration - repeatBarState.startTime) *
+          ((edgePosition - barLeft) / barWidth) +
+        repeatBarState.startTime;
+      if (target === "start") {
+        setRepeatTime({ ...repeatTime, startTime: convertedTime });
+      } else {
+        setRepeatTime({ ...repeatTime, endTime: convertedTime });
+      }
+      moveCurrentTime(convertedTime);
     }
 
     function mouseUpEdge() {
@@ -321,7 +325,7 @@ function RepeatBar({
           onKeyDown={(e) => {
             console.log(e.code);
           }}
-          // onMouseDown={(e) => mouseDownEdge(e, "start")}
+          onMouseDown={(e) => mouseDownControllerEdge(e, "start")}
           role="button"
           aria-label="repeat-starting-point"
           tabIndex={0}
@@ -331,7 +335,7 @@ function RepeatBar({
           onKeyDown={(e) => {
             console.log(e.code);
           }}
-          // onMouseDown={(e) => mouseDownEdge(e, "end")}
+          onMouseDown={(e) => mouseDownControllerEdge(e, "end")}
           role="button"
           aria-label="repeat-ending-point"
           tabIndex={0}

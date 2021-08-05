@@ -1,4 +1,4 @@
-#RepeatBar {
+#repeatBar {
   position: relative;
   width: 80%;
   height: 10px;
@@ -6,7 +6,7 @@
   background: #666;
 }
 
-.RepeatItem {
+#repeatController {
   position: absolute;
   width: 100%;
   height: 8px;
@@ -18,13 +18,13 @@
   cursor: pointer;
 }
 
-.RepeatItem .start, .RepeatItem .end {
+#repeatController :is(.start, .end) {
   width: 10px;
   height: 8px;
   background: #888;
   cursor: pointer;
 }
 
-.RepeatItem .start.hover, .RepeatItem .end.hover {
+#repeatController :is(.start, .end):is(:hover, .hover) {
   transform: scale(1.5);
 }

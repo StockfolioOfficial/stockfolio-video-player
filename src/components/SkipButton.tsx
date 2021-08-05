@@ -4,7 +4,7 @@ interface SkipButtonProps {
   videoRef: HTMLVideoElement | null;
   skipTime: number;
   moveCurrentTime: (time: number) => void;
-  repeatOn: boolean;
+  isRepeat: boolean;
   repeatTime: {
     startTime: number;
     endTime: number;
@@ -15,14 +15,14 @@ function SkipButton({
   videoRef,
   skipTime,
   moveCurrentTime,
-  repeatOn,
+  isRepeat,
   repeatTime,
   children,
 }: SkipButtonProps & React.HTMLProps<HTMLButtonElement>) {
   function clickSkipButton() {
     if (videoRef === null) return;
     let afterTime = videoRef.currentTime + skipTime;
-    if (repeatOn) {
+    if (isRepeat) {
       const { startTime, endTime } = repeatTime;
 
       if (afterTime < startTime) afterTime = startTime;

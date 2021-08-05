@@ -9,12 +9,14 @@ import React, { ReactElement, useState } from "react";
 import "./App.css";
 
 function App(): ReactElement {
-  const [repeatOn, changeRepeatOn] = useState(false);
-  const minTime = 1;
-  const maxTime = 15;
+  const [isRepeat, setIsRepeat] = useState(false);
+  const repeatOtion = {
+    minTime: 1,
+    maxTime: 10,
+  };
   const [repeatTime, setRepeatTime] = useState({
     startTime: 0,
-    endTime: 0 + minTime,
+    endTime: repeatOtion.minTime,
   });
   const [videoRef, setVideoRef] = useState<null | HTMLVideoElement>(null);
   const skipTime = 1;
@@ -45,6 +47,50 @@ function App(): ReactElement {
     else videoRef.pause();
   }
 
+  function createRepeat() {
+    if (videoRef === null) return;
+    const { duration, currentTime } = videoRef;
+    const { minTime } = repeatOtion;
+    if (duration < minTime) {
+      console.error("구간 반복을 생성할 수 없습니다.");
+      return;
+    }
+    let repeatStart = currentTime;
+    let repeatEnd = repeatStart + minTime;
+
+    if (repeatStart < 0) {
+      repeatStart = 0;
+      repeatEnd = minTime;
+    }
+
+    if (repeatEnd > duration) {
+      repeatStart = duration - minTime;
+      repeatEnd = duration;
+    }
+
+    setRepeatTime({
+      startTime: repeatStart,
+      endTime: repeatEnd,
+    });
+    videoRef.pause();
+    setIsRepeat(true);
+  }
+
+  function clickRepeatOnOff() {
+    if (videoRef === null) return;
+    if (isRepeat) {
+      setIsRepeat(false);
+      setRepeatTime({
+        startTime: 0,
+        endTime: repeatOtion.minTime,
+      });
+    } else {
+      createRepeat();
+      videoRef.pause();
+      setIsRepeat(true);
+    }
+  }
+
   return (
     <div className="App">
       <video ref={setVideoRef} onClick={clickVideo} muted>
@@ -59,7 +105,7 @@ function App(): ReactElement {
       <StopButton
         videoRef={videoRef}
         moveCurrentTime={moveCurrentTime}
-        repeatOn={repeatOn}
+        isRepeat={isRepeat}
         startTime={repeatTime.startTime}
       />
       <MuteButton videoRef={videoRef} setMute={setMute} />
@@ -67,14 +113,14 @@ function App(): ReactElement {
         videoRef={videoRef}
         skipTime={-skipTime}
         moveCurrentTime={moveCurrentTime}
-        repeatOn={repeatOn}
+        isRepeat={isRepeat}
         repeatTime={repeatTime}
       />
       <SkipButton
         videoRef={videoRef}
         skipTime={skipTime}
         moveCurrentTime={moveCurrentTime}
-        repeatOn={repeatOn}
+        isRepeat={isRepeat}
         repeatTime={repeatTime}
       />
       <FullscreenButton videoRef={videoRef} />
@@ -83,29 +129,22 @@ function App(): ReactElement {
         videoRef={videoRef}
         moveCurrentTime={moveCurrentTime}
         skipTime={skipTime}
-        repeatOn={repeatOn}
+        isRepeat={isRepeat}
         repeatTime={repeatTime}
         setRepeatTime={setRepeatTime}
       />
       <div>
-        <button
-          type="button"
-          onClick={() => {
-            if (videoRef === null) return;
-            videoRef.pause();
-            changeRepeatOn(!repeatOn);
-          }}
-        >
+        <button type="button" onClick={clickRepeatOnOff}>
           구간반복 on/off
         </button>
       </div>
-      {repeatOn && (
+      {isRepeat && (
         <RepeatBar
           videoRef={videoRef}
           repeatTime={repeatTime}
           setRepeatTime={setRepeatTime}
-          minTime={minTime}
           moveCurrentTime={moveCurrentTime}
+          repeatOtion={repeatOtion}
         />
       )}
     </div>

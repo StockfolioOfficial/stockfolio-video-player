@@ -5,7 +5,7 @@ interface ControlBarProps {
   videoRef: HTMLVideoElement | null;
   moveCurrentTime: (time: number) => void;
   skipTime: number;
-  repeatOn: boolean;
+  isRepeat: boolean;
   repeatTime: {
     startTime: number;
     endTime: number;
@@ -22,7 +22,7 @@ function ControlBar({
   videoRef,
   moveCurrentTime,
   skipTime,
-  repeatOn,
+  isRepeat,
   repeatTime,
   setRepeatTime,
 }: ControlBarProps) {
@@ -86,7 +86,7 @@ function ControlBar({
     let targetTimeLength = e.pageX - offsetLeft;
     let targetTime = duration * (targetTimeLength / clientWidth);
     const isChangeRepeatTime =
-      repeatOn &&
+      isRepeat &&
       (targetTime < repeatTime.startTime || targetTime > repeatTime.endTime);
 
     if (!paused) videoRef.pause();
@@ -132,14 +132,14 @@ function ControlBar({
     switch (e.code) {
       case "ArrowRight":
         moveCurrentTime(
-          repeatOn && videoRef.currentTime + skipTime > repeatTime.endTime
+          isRepeat && videoRef.currentTime + skipTime > repeatTime.endTime
             ? repeatTime.endTime
             : videoRef.currentTime + skipTime
         );
         break;
       case "ArrowLeft":
         moveCurrentTime(
-          repeatOn && videoRef.currentTime - skipTime < repeatTime.startTime
+          isRepeat && videoRef.currentTime - skipTime < repeatTime.startTime
             ? repeatTime.startTime
             : videoRef.currentTime - skipTime
         );
@@ -173,7 +173,7 @@ function ControlBar({
     const { current: $startDimmed } = startDimmedRef;
     const { current: $endDimmed } = endDimmedRef;
     const { duration } = videoRef;
-    if (repeatOn) {
+    if (isRepeat) {
       $startDimmed.style.transform = `scaleX(${
         (repeatTime.startTime / duration) * 100
       }%)`;
@@ -187,7 +187,7 @@ function ControlBar({
   }, [
     startDimmedRef.current,
     endDimmedRef.current,
-    repeatOn,
+    isRepeat,
     repeatTime,
     videoRef,
   ]);

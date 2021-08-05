@@ -12,7 +12,7 @@ function App(): ReactElement {
   const [isRepeat, setIsRepeat] = useState(false);
   const repeatOtion = {
     minTime: 1,
-    maxTime: 10,
+    maxTime: 2,
   };
   const [repeatTime, setRepeatTime] = useState({
     startTime: 0,

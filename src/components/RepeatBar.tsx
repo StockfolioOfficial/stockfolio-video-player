@@ -41,6 +41,22 @@ function RepeatBar({
     duration: 0,
   });
 
+  function repeatVideo() {
+    if (videoRef === null) return;
+    if (
+      videoRef.currentTime > repeatTime.endTime ||
+      videoRef.currentTime < repeatTime.startTime
+    )
+      moveCurrentTime(repeatTime.startTime);
+  }
+
+  function roopReatVideo() {
+    repeatVideo();
+
+    if (videoRef !== null && !videoRef.paused)
+      window.requestAnimationFrame(roopReatVideo);
+  }
+
   function initRepeatSetting() {
     if (videoRef === null) return;
     const { duration, currentTime } = videoRef;
@@ -237,7 +253,7 @@ function RepeatBar({
           endTime: finalTime,
         });
       }
-      // moveCurrentTime(finalTime);
+      moveCurrentTime(finalTime);
     }
 
     function mouseUpEdge() {
@@ -248,88 +264,6 @@ function RepeatBar({
     document.addEventListener("mousemove", mouseMoveEdge);
     document.addEventListener("mouseup", mouseUpEdge);
   }
-
-  // function setVideoCurrentTime() {
-  //   if (videoRef === null) return;
-  //   const { startTime, endTime } = repeatTime;
-  //   if (videoRef.currentTime < startTime) moveCurrentTime(startTime);
-  //   if (videoRef.currentTime > endTime) moveCurrentTime(endTime);
-  // }
-  // function repeatVideo() {
-  //   const { startTime, endTime } = repeatTime;
-  //   if (videoRef === null) return;
-  //   if (videoRef.currentTime > endTime) moveCurrentTime(startTime);
-  //   if (!videoRef.paused) window.requestAnimationFrame(repeatVideo);
-  // }
-  // function mouseDownEdge(
-  //   e: React.MouseEvent<HTMLDivElement>,
-  //   target: "start" | "end"
-  // ) {
-  //   if (
-  //     videoRef === null ||
-  //     repeatControllerRef.current === null ||
-  //     repeatBarRef.current === null
-  //   )
-  //     return;
-  //   if (e.currentTarget !== e.target) return;
-  //   const { clientWidth: barWidth, offsetLeft: barLeft } = repeatBarRef.current;
-  //   const { clientWidth: itemWidth, offsetLeft: itemLeft } =
-  //     repeatControllerRef.current;
-  //   const { duration } = videoRef;
-  //   const minLength = (barWidth * minTime) / duration;
-  //   let edgePoint = 0;
-  //   let pointerToEdge = 0;
-  //   let limitStart = barLeft;
-  //   let limitEnd = barLeft + barWidth;
-  //   if (!videoRef.paused) videoRef.pause();
-  //   if (target === "start") {
-  //     edgePoint = barLeft + itemLeft;
-  //     pointerToEdge = e.pageX - edgePoint;
-  //     limitEnd = edgePoint + itemWidth - minLength;
-  //   } else {
-  //     edgePoint = barLeft + itemLeft + itemWidth;
-  //     pointerToEdge = edgePoint - e.pageX;
-  //     limitStart = edgePoint - itemWidth + minLength;
-  //   }
-  //   function mouseMoveEdge(em: MouseEvent) {
-  //     let afterEdgePoint =
-  //       target === "start"
-  //         ? em.pageX - pointerToEdge
-  //         : em.pageX + pointerToEdge;
-  //     if (afterEdgePoint < limitStart) afterEdgePoint = limitStart;
-  //     if (afterEdgePoint > limitEnd) afterEdgePoint = limitEnd;
-  //     if (afterEdgePoint === edgePoint) return;
-  //     edgePoint = afterEdgePoint;
-  //     const changeTime = duration * ((edgePoint - barLeft) / barWidth);
-  //     if (target === "start") {
-  //       setRepeatTime({ ...repeatTime, startTime: changeTime });
-  //     } else {
-  //       setRepeatTime({ ...repeatTime, endTime: changeTime });
-  //     }
-  //     moveCurrentTime(changeTime);
-  //   }
-  //   function mouseUpEdge() {
-  //     document.removeEventListener("mousemove", mouseMoveEdge);
-  //     document.removeEventListener("mouseup", mouseUpEdge);
-  //   }
-  //   document.addEventListener("mousemove", mouseMoveEdge);
-  //   document.addEventListener("mouseup", mouseUpEdge);
-  // }
-
-  // useEffect(() => {
-  // if (videoRef === null || repeatControllerRef.current === null) return undefined;
-  // const { startTime, endTime } = repeatTime;
-  // const { minTime, maxTime } = repeatOtion;
-  // }, [videoRef, repeatControllerRef]);
-
-  // useEffect(() => {
-  // if (videoRef === null || repeatControllerRef.current === null) return undefined;
-  // changeItemPosition();
-  // videoRef.addEventListener("playing", repeatVideo);
-  // return () => {
-  //   videoRef.removeEventListener("playing", repeatVideo);
-  // };
-  // }, [videoRef, repeatTime, repeatControllerRef]);
 
   function parseTimeDate(time: number) {
     const totalSec = Math.floor(time);
@@ -349,14 +283,22 @@ function RepeatBar({
 
   useEffect(() => {
     initRepeatSetting();
+    console.log("videoRef");
   }, [videoRef]);
 
   useEffect(() => {
     setRepeatControllerPosition();
+    console.log("repeatBarState");
   }, [repeatBarState]);
 
   useEffect(() => {
+    repeatVideo();
     setRepeatControllerPosition();
+    console.log("repeatTime");
+    videoRef?.addEventListener("playing", roopReatVideo);
+    return () => {
+      videoRef?.removeEventListener("playing", roopReatVideo);
+    };
   }, [repeatTime]);
 
   return (

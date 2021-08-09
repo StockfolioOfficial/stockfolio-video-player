@@ -65,6 +65,20 @@ function RepeatBar({
     });
   }
 
+  function convertPositionToTime(
+    position: number,
+    startPosition: number,
+    endPosition: number
+  ) {
+    const { duration: repeatBarDuration, startTime: repeatBarStartTime } =
+      repeatBarState;
+    return (
+      repeatBarDuration *
+        ((position - startPosition) / (endPosition - startPosition)) +
+      repeatBarStartTime
+    );
+  }
+
   function setRepeatControllerPosition() {
     const { startTime, endTime } = repeatTime;
     if (repeatControllerRef.current === null) return;
@@ -114,23 +128,24 @@ function RepeatBar({
         return;
       controllerStartPosition = afterStartPosition;
       controllerEndPosition = afterEndPosition;
-      const { startTime: repeatBarStartTime, duration: repeatBarDuration } =
-        repeatBarState;
-
-      function convertPositionToTime(position: number) {
-        return (
-          repeatBarDuration * ((position - barLeft) / barWidth) +
-          repeatBarStartTime
-        );
-      }
 
       setRepeatTime({
-        startTime: convertPositionToTime(controllerStartPosition),
-        endTime: convertPositionToTime(controllerEndPosition),
+        startTime: convertPositionToTime(
+          controllerStartPosition,
+          barLeft,
+          barLeft + barWidth
+        ),
+        endTime: convertPositionToTime(
+          controllerEndPosition,
+          barLeft,
+          barLeft + barWidth
+        ),
       });
       moveCurrentTime(
         convertPositionToTime(
-          (controllerStartPosition + controllerEndPosition) / 2
+          (controllerStartPosition + controllerEndPosition) / 2,
+          barLeft,
+          barLeft + barWidth
         )
       );
     }
@@ -158,10 +173,15 @@ function RepeatBar({
     const { clientWidth: barWidth, offsetLeft: barLeft } = repeatBarRef.current;
     const { clientWidth: controllerWidth, offsetLeft: controllerLeft } =
       repeatControllerRef.current;
-    const { startTime: repeatBarStartTime, duration: repeatDuration } =
-      repeatBarState;
+    const {
+      startTime: repeatBarStartTime,
+      endTime: repeatBarEndTime,
+      duration: repeatDuration,
+    } = repeatBarState;
     const minLength =
       barWidth * (minTime / repeatDuration - repeatBarStartTime);
+    const maxLength =
+      barWidth * (maxTime / repeatDuration - repeatBarStartTime);
     let edgePosition = 0;
     let pointerToEdge = 0;
     let limitStart = barLeft;
@@ -172,10 +192,14 @@ function RepeatBar({
     if (target === "start") {
       edgePosition = barLeft + controllerLeft;
       pointerToEdge = e.pageX - edgePosition;
+      const demoLimitStart = edgePosition + controllerWidth - maxLength;
+      limitStart = demoLimitStart < limitStart ? limitStart : demoLimitStart;
       limitEnd = edgePosition + controllerWidth - minLength;
     } else {
       edgePosition = barLeft + controllerLeft + controllerWidth;
       pointerToEdge = edgePosition - e.pageX;
+      const demoLimitEnd = edgePosition - controllerWidth + maxLength;
+      limitEnd = demoLimitEnd > limitEnd ? limitEnd : demoLimitEnd;
       limitStart = edgePosition - controllerWidth + minLength;
     }
 
@@ -185,21 +209,35 @@ function RepeatBar({
         target === "start"
           ? em.pageX - pointerToEdge
           : em.pageX + pointerToEdge;
-      if (afterEdgePoint < limitStart) afterEdgePoint = limitStart;
+
       if (afterEdgePoint > limitEnd) afterEdgePoint = limitEnd;
+      if (afterEdgePoint < limitStart) afterEdgePoint = limitStart;
       if (afterEdgePoint === edgePosition) return;
       edgePosition = afterEdgePoint;
-
-      const convertedTime =
-        (repeatDuration - repeatBarState.startTime) *
-          ((edgePosition - barLeft) / barWidth) +
-        repeatBarState.startTime;
+      const convertedTime = convertPositionToTime(
+        edgePosition,
+        barLeft,
+        barLeft + barWidth
+      );
+      let finalTime = 0;
       if (target === "start") {
-        setRepeatTime({ ...repeatTime, startTime: convertedTime });
+        finalTime =
+          convertedTime < repeatBarStartTime
+            ? repeatBarStartTime
+            : convertedTime;
+        setRepeatTime({
+          ...repeatTime,
+          startTime: finalTime,
+        });
       } else {
-        setRepeatTime({ ...repeatTime, endTime: convertedTime });
+        finalTime =
+          convertedTime > repeatBarEndTime ? repeatBarEndTime : convertedTime;
+        setRepeatTime({
+          ...repeatTime,
+          endTime: finalTime,
+        });
       }
-      moveCurrentTime(convertedTime);
+      // moveCurrentTime(finalTime);
     }
 
     function mouseUpEdge() {

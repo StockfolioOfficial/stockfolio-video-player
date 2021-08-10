@@ -39,7 +39,7 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
     setRepeatControllerState({
       startTime: repeatStart,
       endTime: repeatEnd,
-      duration: repeatEnd - repeatStart,
+      duration: minTime,
     });
     videoRef.pause();
     setIsRepeat(true);
@@ -65,67 +65,69 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
     if (videoRef === null) return;
     if (
       videoRef.currentTime > repeatControllerState.endTime ||
-      videoRef.currentTime < repeatControllerState.startTime
+      videoRef.currentTime < repeatControllerState.startTime - 0.1
     )
       moveCurrentTime(repeatControllerState.startTime);
   }
 
   function roopReatVideo() {
     repeatVideo();
-
     if (videoRef !== null && !videoRef.paused)
       window.requestAnimationFrame(roopReatVideo);
   }
 
-  function initRepeatSetting() {
-    if (videoRef === null) return;
-    const { duration, currentTime } = videoRef;
-    let repeatBarDuration: number = maxTime * 3;
-
-    if (repeatBarDuration > duration) repeatBarDuration = duration;
-    let repeatBarStartTime = currentTime - repeatBarDuration / 2 + minTime / 2;
-    let repeatBarEndTime = currentTime + repeatBarDuration / 2 + minTime / 2;
-    if (repeatBarStartTime < 0) {
-      repeatBarStartTime = 0;
-      repeatBarEndTime = repeatBarDuration;
-    }
-
-    if (repeatBarEndTime > duration) {
-      repeatBarStartTime = duration - repeatBarDuration;
-      repeatBarEndTime = duration;
-    }
-    setRepeatViewState({
-      startTime: repeatBarStartTime,
-      endTime: repeatBarEndTime,
-      duration: repeatBarDuration,
-    });
-  }
-
   function convertPositionToTime(
-    position: number,
-    startPosition: number,
+    targetPosition: number,
+    startingPosition: number,
     endPosition: number
   ) {
-    const { duration: repeatBarDuration, startTime: repeatBarStartTime } =
+    const { duration: repeatViewDuration, startTime: repeatViewStartTime } =
       repeatViewState;
     return (
-      repeatBarDuration *
-        ((position - startPosition) / (endPosition - startPosition)) +
-      repeatBarStartTime
+      repeatViewDuration *
+        ((targetPosition - startingPosition) /
+          (endPosition - startingPosition)) +
+      repeatViewStartTime
     );
+  }
+
+  function setInitRepeatViewState() {
+    if (videoRef === null) return;
+    const { duration, currentTime } = videoRef;
+    let repeatViewDuration: number = maxTime * 3;
+
+    if (repeatViewDuration > duration) repeatViewDuration = duration;
+    let repeatViewStartTime =
+      currentTime + minTime / 2 - repeatViewDuration / 2;
+    let repeatViewEndTime = repeatViewStartTime + repeatViewDuration;
+
+    if (repeatViewStartTime < 0) {
+      repeatViewStartTime = 0;
+      repeatViewEndTime = repeatViewDuration;
+    }
+
+    if (repeatViewEndTime > duration) {
+      repeatViewEndTime = duration;
+      repeatViewStartTime = duration - repeatViewDuration;
+    }
+    setRepeatViewState({
+      startTime: repeatViewStartTime,
+      endTime: repeatViewEndTime,
+      duration: repeatViewDuration,
+    });
   }
 
   function setRepeatControllerPosition() {
     const { startTime, endTime } = repeatControllerState;
     if (repeatControllerRef.current === null) return;
     const { current: $controller } = repeatControllerRef;
-    const { startTime: repeatBarStartTime, duration: repeatBarDuration } =
+    const { startTime: repeatViewStartTime, duration: repeatViewDuration } =
       repeatViewState;
     $controller.style.left = `${
-      ((startTime - repeatBarStartTime) / repeatBarDuration) * 100
+      ((startTime - repeatViewStartTime) / repeatViewDuration) * 100
     }%`;
     $controller.style.width = `${
-      ((endTime - startTime) / repeatBarDuration) * 100
+      ((endTime - startTime) / repeatViewDuration) * 100
     }%`;
   }
 
@@ -325,24 +327,20 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
   }
 
   useEffect(() => {
-    initRepeatSetting();
-    console.log("videoRef");
-  }, [videoRef]);
+    if (!isRepeat) return;
+    setInitRepeatViewState();
+  }, [videoRef, isRepeat]);
 
   useEffect(() => {
     setRepeatControllerPosition();
-    console.log("repeatBarState");
-  }, [repeatViewState]);
+  }, [repeatViewState, repeatControllerState]);
 
   useEffect(() => {
+    if (!isRepeat || videoRef === null) return undefined;
     repeatVideo();
-    setRepeatControllerPosition();
-    console.log("repeatControllerState");
-    videoRef?.addEventListener("playing", roopReatVideo);
-    return () => {
-      videoRef?.removeEventListener("playing", roopReatVideo);
-    };
-  }, [repeatControllerState]);
+    videoRef.addEventListener("playing", roopReatVideo);
+    return () => videoRef.removeEventListener("playing", roopReatVideo);
+  }, [repeatControllerState, isRepeat]);
 
   return (
     <div id="repeat">

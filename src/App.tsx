@@ -5,15 +5,12 @@ import PlayButton from "components/PlayButton";
 import RepeatBar from "components/RepeatBar";
 import SkipButton from "components/SkipButton";
 import StopButton from "components/StopButton";
-import repeatStore from "contexts/repeatStore";
-import React, { ReactElement, useContext, useState } from "react";
+import React, { ReactElement, useState } from "react";
 import "./App.css";
 
 function App(): ReactElement {
   const [videoRef, setVideoRef] = useState<null | HTMLVideoElement>(null);
   const skipTime = 1;
-  const { state: repeatState } = useContext(repeatStore);
-  const { isRepeat } = repeatState;
 
   function playVideo() {
     if (videoRef === null) return;

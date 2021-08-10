@@ -1,31 +1,17 @@
-import React, { useEffect, useRef } from "react";
+import repeatStore from "contexts/repeatStore";
+import React, { useContext, useEffect, useRef } from "react";
 import "./ControlBar.css";
 
 interface ControlBarProps {
   videoRef: HTMLVideoElement | null;
   moveCurrentTime: (time: number) => void;
   skipTime: number;
-  isRepeat: boolean;
-  repeatTime: {
-    startTime: number;
-    endTime: number;
-  };
-  setRepeatTime: React.Dispatch<
-    React.SetStateAction<{
-      startTime: number;
-      endTime: number;
-    }>
-  >;
 }
 
-function ControlBar({
-  videoRef,
-  moveCurrentTime,
-  skipTime,
-  isRepeat,
-  repeatTime,
-  setRepeatTime,
-}: ControlBarProps) {
+function ControlBar({ videoRef, moveCurrentTime, skipTime }: ControlBarProps) {
+  const { state: repeatState, action: repeatAction } = useContext(repeatStore);
+  const { isRepeat, repeatControllerState } = repeatState;
+  const { setRepeatControllerState } = repeatAction;
   const progressBarRef = useRef<HTMLDivElement | null>(null);
   const startDimmedRef = useRef<HTMLDivElement | null>(null);
   const endDimmedRef = useRef<HTMLDivElement | null>(null);
@@ -46,36 +32,38 @@ function ControlBar({
     if (!videoRef.paused) window.requestAnimationFrame(timeUpdateVideo);
   }
 
-  function changeRepeatTime(
+  function changerepeatControllerState(
     targetTime: number,
     targetOrigin?: "start" | "end"
   ) {
     if (videoRef === null) return;
-    const repeatTimeLength = repeatTime.endTime - repeatTime.startTime;
-    let afterRepeatStartTime = targetTime - repeatTimeLength / 2;
-    let afterRepeatEndTime = targetTime + repeatTimeLength / 2;
+    const repeatControllerStateLength =
+      repeatControllerState.endTime - repeatControllerState.startTime;
+    let afterRepeatStartTime = targetTime - repeatControllerStateLength / 2;
+    let afterRepeatEndTime = targetTime + repeatControllerStateLength / 2;
 
     if (targetOrigin === "start") {
       afterRepeatStartTime = targetTime;
-      afterRepeatEndTime = targetTime + repeatTimeLength;
+      afterRepeatEndTime = targetTime + repeatControllerStateLength;
     }
 
     if (targetOrigin === "end") {
-      afterRepeatStartTime = targetTime - repeatTimeLength;
+      afterRepeatStartTime = targetTime - repeatControllerStateLength;
       afterRepeatEndTime = targetTime;
     }
 
     if (afterRepeatStartTime < 0) {
       afterRepeatStartTime = 0;
-      afterRepeatEndTime = repeatTimeLength;
+      afterRepeatEndTime = repeatControllerStateLength;
     } else if (afterRepeatEndTime > videoRef.duration) {
-      afterRepeatStartTime = videoRef.duration - repeatTimeLength;
+      afterRepeatStartTime = videoRef.duration - repeatControllerStateLength;
       afterRepeatEndTime = videoRef.duration;
     }
 
-    setRepeatTime({
+    setRepeatControllerState({
       startTime: afterRepeatStartTime,
       endTime: afterRepeatEndTime,
+      duration: afterRepeatEndTime - afterRepeatStartTime,
     });
   }
 
@@ -85,13 +73,14 @@ function ControlBar({
     const { duration, paused } = videoRef;
     let targetTimeLength = e.pageX - offsetLeft;
     let targetTime = duration * (targetTimeLength / clientWidth);
-    const isChangeRepeatTime =
+    const isChangerepeatControllerState =
       isRepeat &&
-      (targetTime < repeatTime.startTime || targetTime > repeatTime.endTime);
+      (targetTime < repeatControllerState.startTime ||
+        targetTime > repeatControllerState.endTime);
 
     if (!paused) videoRef.pause();
-    if (isChangeRepeatTime) {
-      changeRepeatTime(targetTime);
+    if (isChangerepeatControllerState) {
+      changerepeatControllerState(targetTime);
     }
     moveCurrentTime(targetTime);
     timeUpdateVideo();
@@ -101,16 +90,16 @@ function ControlBar({
       if (targetTimeLength === em.pageX - offsetLeft) return;
       targetTimeLength = em.pageX - offsetLeft;
       targetTime = duration * (targetTimeLength / clientWidth);
-      if (isChangeRepeatTime) {
-        changeRepeatTime(targetTime);
+      if (isChangerepeatControllerState) {
+        changerepeatControllerState(targetTime);
       }
       if (
-        targetTime < repeatTime.startTime ||
-        targetTime > repeatTime.endTime
+        targetTime < repeatControllerState.startTime ||
+        targetTime > repeatControllerState.endTime
       ) {
-        changeRepeatTime(
+        changerepeatControllerState(
           targetTime,
-          targetTime < repeatTime.startTime ? "start" : "end"
+          targetTime < repeatControllerState.startTime ? "start" : "end"
         );
       }
       moveCurrentTime(targetTime);
@@ -132,15 +121,17 @@ function ControlBar({
     switch (e.code) {
       case "ArrowRight":
         moveCurrentTime(
-          isRepeat && videoRef.currentTime + skipTime > repeatTime.endTime
-            ? repeatTime.endTime
+          isRepeat &&
+            videoRef.currentTime + skipTime > repeatControllerState.endTime
+            ? repeatControllerState.endTime
             : videoRef.currentTime + skipTime
         );
         break;
       case "ArrowLeft":
         moveCurrentTime(
-          isRepeat && videoRef.currentTime - skipTime < repeatTime.startTime
-            ? repeatTime.startTime
+          isRepeat &&
+            videoRef.currentTime - skipTime < repeatControllerState.startTime
+            ? repeatControllerState.startTime
             : videoRef.currentTime - skipTime
         );
         break;
@@ -175,10 +166,10 @@ function ControlBar({
     const { duration } = videoRef;
     if (isRepeat) {
       $startDimmed.style.transform = `scaleX(${
-        (repeatTime.startTime / duration) * 100
+        (repeatControllerState.startTime / duration) * 100
       }%)`;
       $endDimmed.style.transform = `scaleX(${
-        ((duration - repeatTime.endTime) / duration) * 100
+        ((duration - repeatControllerState.endTime) / duration) * 100
       }%)`;
     } else {
       $startDimmed.style.transform = "scaleX(0)";
@@ -188,7 +179,7 @@ function ControlBar({
     startDimmedRef.current,
     endDimmedRef.current,
     isRepeat,
-    repeatTime,
+    repeatControllerState,
     videoRef,
   ]);
 

@@ -1,53 +1,73 @@
-import React, { useEffect, useRef, useState } from "react";
+import repeatStore from "contexts/repeatStore";
+import React, { useContext, useEffect, useRef } from "react";
 import "./RepeatBar.css";
 
 interface RepeatBarProps {
-  repeatTime: {
-    startTime: number;
-    endTime: number;
-  };
-  setRepeatTime: React.Dispatch<
-    React.SetStateAction<{
-      startTime: number;
-      endTime: number;
-    }>
-  >;
   videoRef: HTMLVideoElement | null;
   moveCurrentTime: (time: number) => void;
-  repeatOtion: {
-    minTime: number;
-    maxTime: number;
-  };
 }
 
-function RepeatBar({
-  repeatTime,
-  setRepeatTime,
-  videoRef,
-  moveCurrentTime,
-  repeatOtion,
-}: RepeatBarProps) {
-  const { minTime, maxTime } = repeatOtion;
-
+function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
+  const { state, action } = useContext(repeatStore);
+  const { isRepeat, repeatControllerState, repeatOption, repeatViewState } =
+    state;
+  const { minTime, maxTime } = repeatOption;
+  const { setRepeatControllerState, setRepeatViewState, setIsRepeat } = action;
   const repeatBarRef = useRef<HTMLDivElement | null>(null);
   const repeatControllerRef = useRef<HTMLDivElement | null>(null);
-  const [repeatBarState, setRepeatBarState] = useState<{
-    startTime: number;
-    endTime: number;
-    duration: number;
-  }>({
-    startTime: 0,
-    endTime: 0,
-    duration: 0,
-  });
+
+  function createRepeat() {
+    if (videoRef === null) return;
+    const { duration, currentTime } = videoRef;
+    if (duration < minTime) {
+      console.error("구간 반복을 생성할 수 없습니다.");
+      return;
+    }
+    let repeatStart = currentTime;
+    let repeatEnd = repeatStart + minTime;
+
+    if (repeatStart < 0) {
+      repeatStart = 0;
+      repeatEnd = minTime;
+    }
+
+    if (repeatEnd > duration) {
+      repeatStart = duration - minTime;
+      repeatEnd = duration;
+    }
+
+    setRepeatControllerState({
+      startTime: repeatStart,
+      endTime: repeatEnd,
+      duration: repeatEnd - repeatStart,
+    });
+    videoRef.pause();
+    setIsRepeat(true);
+  }
+
+  function clickRepeat() {
+    if (videoRef === null) return;
+    if (isRepeat) {
+      setIsRepeat(false);
+      setRepeatControllerState({
+        startTime: 0,
+        endTime: minTime,
+        duration: minTime,
+      });
+    } else {
+      createRepeat();
+      videoRef.pause();
+      setIsRepeat(true);
+    }
+  }
 
   function repeatVideo() {
     if (videoRef === null) return;
     if (
-      videoRef.currentTime > repeatTime.endTime ||
-      videoRef.currentTime < repeatTime.startTime
+      videoRef.currentTime > repeatControllerState.endTime ||
+      videoRef.currentTime < repeatControllerState.startTime
     )
-      moveCurrentTime(repeatTime.startTime);
+      moveCurrentTime(repeatControllerState.startTime);
   }
 
   function roopReatVideo() {
@@ -74,7 +94,7 @@ function RepeatBar({
       repeatBarStartTime = duration - repeatBarDuration;
       repeatBarEndTime = duration;
     }
-    setRepeatBarState({
+    setRepeatViewState({
       startTime: repeatBarStartTime,
       endTime: repeatBarEndTime,
       duration: repeatBarDuration,
@@ -87,7 +107,7 @@ function RepeatBar({
     endPosition: number
   ) {
     const { duration: repeatBarDuration, startTime: repeatBarStartTime } =
-      repeatBarState;
+      repeatViewState;
     return (
       repeatBarDuration *
         ((position - startPosition) / (endPosition - startPosition)) +
@@ -96,11 +116,11 @@ function RepeatBar({
   }
 
   function setRepeatControllerPosition() {
-    const { startTime, endTime } = repeatTime;
+    const { startTime, endTime } = repeatControllerState;
     if (repeatControllerRef.current === null) return;
     const { current: $controller } = repeatControllerRef;
     const { startTime: repeatBarStartTime, duration: repeatBarDuration } =
-      repeatBarState;
+      repeatViewState;
     $controller.style.left = `${
       ((startTime - repeatBarStartTime) / repeatBarDuration) * 100
     }%`;
@@ -120,50 +140,73 @@ function RepeatBar({
     const { clientWidth: barWidth, offsetLeft: barLeft } = repeatBarRef.current;
     const { clientWidth: controllerWidth, offsetLeft: controllerLeft } =
       repeatControllerRef.current;
-    let controllerStartPosition = barLeft + controllerLeft;
-    let controllerEndPosition = controllerStartPosition + controllerWidth;
+    const videoDuration = videoRef.duration;
+    const controllerStartPosition = barLeft + controllerLeft;
+    const controllerEndPosition = controllerStartPosition + controllerWidth;
+    let accellorate: null | number = null;
 
     if (!videoRef.paused) videoRef.pause();
 
     function mouseMoveController(em: MouseEvent) {
       em.preventDefault();
-      let afterStartPosition = em.pageX - e.nativeEvent.offsetX;
-      let afterEndPosition = em.pageX - e.nativeEvent.offsetX + controllerWidth;
+      const afterStartPosition = em.pageX - e.nativeEvent.offsetX;
+      const afterEndPosition =
+        em.pageX - e.nativeEvent.offsetX + controllerWidth;
+      const {
+        startTime: barStartTime,
+        endTime: barEndTime,
+        duration: barDuration,
+      } = repeatViewState;
+      let overLength = 0;
+      const finalStartPosition = barLeft;
+      const finalEndPosition = barLeft + barWidth;
       if (afterStartPosition < barLeft) {
-        afterStartPosition = barLeft;
-        afterEndPosition = barLeft + controllerWidth;
+        overLength = barLeft - afterStartPosition;
+        accellorate = (barDuration * overLength) / barWidth;
       }
       if (afterEndPosition > barLeft + barWidth) {
-        afterStartPosition = barLeft + barWidth - controllerWidth;
-        afterEndPosition = barLeft + barWidth;
+        overLength = afterEndPosition - barLeft - barWidth;
+        accellorate = (barDuration * overLength) / barWidth;
+      } else {
+        accellorate = accellorate !== null ? null : accellorate;
       }
-      if (
-        controllerStartPosition === afterStartPosition ||
-        controllerEndPosition === afterEndPosition
-      )
-        return;
-      controllerStartPosition = afterStartPosition;
-      controllerEndPosition = afterEndPosition;
+      // controllerStartPosition = accellorate === null ? afterStartPosition : ;
+      // controllerEndPosition = afterEndPosition;
 
-      setRepeatTime({
-        startTime: convertPositionToTime(
-          controllerStartPosition,
-          barLeft,
-          barLeft + barWidth
-        ),
-        endTime: convertPositionToTime(
-          controllerEndPosition,
-          barLeft,
-          barLeft + barWidth
-        ),
-      });
-      moveCurrentTime(
-        convertPositionToTime(
-          (controllerStartPosition + controllerEndPosition) / 2,
-          barLeft,
-          barLeft + barWidth
-        )
-      );
+      // let finalStartTime = convertPositionToTime(
+      //   controllerStartPosition,
+      //   barLeft,
+      //   barLeft + barWidth
+      // );
+
+      // let finalEndTime = convertPositionToTime(
+      //   controllerEndPosition,
+      //   barLeft,
+      //   barLeft + barWidth
+      // );
+
+      // if (finalStartTime < 0) {
+      //   finalStartTime = 0;
+      //   finalEndTime = repeatControllerState.endTime - repeatControllerState.startTime;
+      // }
+
+      // if (finalEndTime > videoDuration) {
+      //   finalEndTime = videoDuration;
+      //   finalStartTime =
+      //     videoDuration - repeatControllerState.endTime + repeatControllerState.startTime;
+      // }
+
+      // setrepeatControllerState({
+      //   startTime: finalStartTime,
+      //   endTime: finalEndTime,
+      // });
+      // moveCurrentTime(
+      //   convertPositionToTime(
+      //     (controllerStartPosition + controllerEndPosition) / 2,
+      //     barLeft,
+      //     barLeft + barWidth
+      //   )
+      // );
     }
 
     function mouseUpController() {
@@ -193,7 +236,7 @@ function RepeatBar({
       startTime: repeatBarStartTime,
       endTime: repeatBarEndTime,
       duration: repeatDuration,
-    } = repeatBarState;
+    } = repeatViewState;
     const minLength =
       barWidth * (minTime / repeatDuration - repeatBarStartTime);
     const maxLength =
@@ -241,15 +284,15 @@ function RepeatBar({
           convertedTime < repeatBarStartTime
             ? repeatBarStartTime
             : convertedTime;
-        setRepeatTime({
-          ...repeatTime,
+        setRepeatControllerState({
+          ...repeatControllerState,
           startTime: finalTime,
         });
       } else {
         finalTime =
           convertedTime > repeatBarEndTime ? repeatBarEndTime : convertedTime;
-        setRepeatTime({
-          ...repeatTime,
+        setRepeatControllerState({
+          ...repeatControllerState,
           endTime: finalTime,
         });
       }
@@ -289,58 +332,67 @@ function RepeatBar({
   useEffect(() => {
     setRepeatControllerPosition();
     console.log("repeatBarState");
-  }, [repeatBarState]);
+  }, [repeatViewState]);
 
   useEffect(() => {
     repeatVideo();
     setRepeatControllerPosition();
-    console.log("repeatTime");
+    console.log("repeatControllerState");
     videoRef?.addEventListener("playing", roopReatVideo);
     return () => {
       videoRef?.removeEventListener("playing", roopReatVideo);
     };
-  }, [repeatTime]);
+  }, [repeatControllerState]);
 
   return (
     <div id="repeat">
-      <div id="repeatBar" ref={repeatBarRef}>
-        <div
-          id="repeatController"
-          ref={repeatControllerRef}
-          onKeyDown={(e) => {
-            console.log(e.code);
-          }}
-          onMouseDown={mouseDownController}
-          role="button"
-          aria-label="repeat-item"
-          tabIndex={0}
-        >
-          <div
-            className="start"
-            onKeyDown={(e) => {
-              console.log(e.code);
-            }}
-            onMouseDown={(e) => mouseDownControllerEdge(e, "start")}
-            role="button"
-            aria-label="repeat-starting-point"
-            tabIndex={0}
-          />
-          <div
-            className="end"
-            onKeyDown={(e) => {
-              console.log(e.code);
-            }}
-            onMouseDown={(e) => mouseDownControllerEdge(e, "end")}
-            role="button"
-            aria-label="repeat-ending-point"
-            tabIndex={0}
-          />
-        </div>
+      <div>
+        <button type="button" onClick={clickRepeat}>
+          구간반복 생성/삭제
+        </button>
       </div>
-      <div id="timeViewer">
-        <p>{parseTimeDate(repeatBarState.startTime)}</p>
-        <p>{parseTimeDate(repeatBarState.endTime)}</p>
-      </div>
+      {isRepeat && (
+        <>
+          <div id="repeatBar" ref={repeatBarRef}>
+            <div
+              id="repeatController"
+              ref={repeatControllerRef}
+              onKeyDown={(e) => {
+                console.log(e.code);
+              }}
+              onMouseDown={mouseDownController}
+              role="button"
+              aria-label="repeat-item"
+              tabIndex={0}
+            >
+              <div
+                className="start"
+                onKeyDown={(e) => {
+                  console.log(e.code);
+                }}
+                onMouseDown={(e) => mouseDownControllerEdge(e, "start")}
+                role="button"
+                aria-label="repeat-starting-point"
+                tabIndex={0}
+              />
+              <div
+                className="end"
+                onKeyDown={(e) => {
+                  console.log(e.code);
+                }}
+                onMouseDown={(e) => mouseDownControllerEdge(e, "end")}
+                role="button"
+                aria-label="repeat-ending-point"
+                tabIndex={0}
+              />
+            </div>
+          </div>
+          <div id="timeViewer">
+            <p>{parseTimeDate(repeatViewState.startTime)}</p>
+            <p>{parseTimeDate(repeatViewState.endTime)}</p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

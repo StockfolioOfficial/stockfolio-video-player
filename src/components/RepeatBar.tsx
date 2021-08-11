@@ -149,12 +149,14 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
     let speed = 0;
 
     if (!paused) videoRef.pause();
+    moveCurrentTime(controlStartTime);
 
     function moveTimeLine(acc: number) {
+      if (roopId === null) return;
       speed += acc;
       timelineStartTime += speed;
       timelineEndTime += speed;
-      console.log(speed);
+      console.log(speed, roopId);
       if (timelineStartTime < 0) {
         timelineStartTime = 0;
         timelineEndTime = timelineDuration;
@@ -220,6 +222,7 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
         startTime: afterStart,
         endTime: afterEnd,
       });
+      moveCurrentTime(afterStart);
 
       if (roopId === null) return;
       console.log("roopId", roopId);
@@ -227,14 +230,17 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
       roopId = null;
       speed = 0;
     }
+
     function mouseUpController() {
       document.removeEventListener("mousemove", mouseMoveController);
       document.removeEventListener("mouseup", mouseUpController);
       if (roopId === null) return;
+      console.log("멈춰", roopId);
       window.cancelAnimationFrame(roopId);
       roopId = null;
       speed = 0;
     }
+
     document.addEventListener("mousemove", mouseMoveController);
     document.addEventListener("mouseup", mouseUpController);
   }

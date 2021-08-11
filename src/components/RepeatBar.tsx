@@ -9,11 +9,12 @@ interface RepeatBarProps {
 
 function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
   const { state, action } = useContext(repeatStore);
-  const { isRepeat, repeatControllerState, repeatOption, repeatViewState } =
+  const { isRepeat, repeatControllerState, repeatOption, repeatTimelineState } =
     state;
   const { minTime, maxTime } = repeatOption;
-  const { setRepeatControllerState, setRepeatViewState, setIsRepeat } = action;
-  const repeatBarRef = useRef<HTMLDivElement | null>(null);
+  const { setRepeatControllerState, setRepeatTimelineState, setIsRepeat } =
+    action;
+  const repeatTimeLineRef = useRef<HTMLDivElement | null>(null);
   const repeatControllerRef = useRef<HTMLDivElement | null>(null);
 
   function createRepeat() {
@@ -76,22 +77,14 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
       window.requestAnimationFrame(roopReatVideo);
   }
 
-  function convertPositionToTime(
-    targetPosition: number,
-    startingPosition: number,
-    endPosition: number
-  ) {
-    const { duration: repeatViewDuration, startTime: repeatViewStartTime } =
-      repeatViewState;
-    return (
-      repeatViewDuration *
-        ((targetPosition - startingPosition) /
-          (endPosition - startingPosition)) +
-      repeatViewStartTime
-    );
+  function convertLengthToTime(targetLength: number) {
+    if (repeatTimeLineRef.current === null) return NaN;
+    const { clientWidth } = repeatTimeLineRef.current;
+    const { duration: timelineDuration } = repeatTimelineState;
+    return (timelineDuration * targetLength) / clientWidth;
   }
 
-  function setInitRepeatViewState() {
+  function setInitrepeatTimelineState() {
     if (videoRef === null) return;
     const { duration, currentTime } = videoRef;
     let repeatViewDuration: number = maxTime * 3;
@@ -110,7 +103,7 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
       repeatViewEndTime = duration;
       repeatViewStartTime = duration - repeatViewDuration;
     }
-    setRepeatViewState({
+    setRepeatTimelineState({
       startTime: repeatViewStartTime,
       endTime: repeatViewEndTime,
       duration: repeatViewDuration,
@@ -122,7 +115,7 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
     if (repeatControllerRef.current === null) return;
     const { current: $controller } = repeatControllerRef;
     const { startTime: repeatViewStartTime, duration: repeatViewDuration } =
-      repeatViewState;
+      repeatTimelineState;
     $controller.style.left = `${
       ((startTime - repeatViewStartTime) / repeatViewDuration) * 100
     }%`;
@@ -136,86 +129,112 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
     if (
       videoRef === null ||
       repeatControllerRef.current === null ||
-      repeatBarRef.current === null
+      repeatTimeLineRef.current === null
     )
       return;
-    const { clientWidth: barWidth, offsetLeft: barLeft } = repeatBarRef.current;
-    const { clientWidth: controllerWidth, offsetLeft: controllerLeft } =
-      repeatControllerRef.current;
-    const videoDuration = videoRef.duration;
-    const controllerStartPosition = barLeft + controllerLeft;
-    const controllerEndPosition = controllerStartPosition + controllerWidth;
-    let accellorate: null | number = null;
+    let { clientX: baseX } = e.nativeEvent;
+    const { duration, paused } = videoRef;
+    const {
+      duration: controlDuration,
+      startTime: controlStartTime,
+      endTime: controlEndTime,
+    } = repeatControllerState;
+    let { startTime: timelineStartTime, endTime: timelineEndTime } =
+      repeatTimelineState;
+    const timelineDuration = repeatTimelineState.duration;
 
-    if (!videoRef.paused) videoRef.pause();
+    let afterStart = controlStartTime;
+    let afterEnd = controlEndTime;
+    let roopId: number | null = null;
+    let speed = 0;
+
+    if (!paused) videoRef.pause();
+
+    function moveTimeLine(acc: number) {
+      speed += acc;
+      timelineStartTime += speed;
+      timelineEndTime += speed;
+      console.log(speed);
+      if (timelineStartTime < 0) {
+        timelineStartTime = 0;
+        timelineEndTime = timelineDuration;
+      }
+
+      if (timelineEndTime > duration) {
+        timelineStartTime = duration - timelineDuration;
+        timelineEndTime = duration;
+      }
+
+      setRepeatTimelineState({
+        ...repeatTimelineState,
+        startTime: timelineStartTime,
+        endTime: timelineEndTime,
+      });
+
+      if (acc > 0) {
+        afterStart = timelineEndTime - controlDuration;
+        afterEnd = timelineEndTime;
+      } else {
+        afterStart = timelineStartTime;
+        afterEnd = timelineStartTime + controlDuration;
+      }
+
+      setRepeatControllerState({
+        ...repeatControllerState,
+        startTime: afterStart,
+        endTime: afterEnd,
+      });
+
+      if (timelineStartTime > 0 && timelineEndTime < duration)
+        window.requestAnimationFrame(() => moveTimeLine(acc));
+    }
 
     function mouseMoveController(em: MouseEvent) {
       em.preventDefault();
-      const afterStartPosition = em.pageX - e.nativeEvent.offsetX;
-      const afterEndPosition =
-        em.pageX - e.nativeEvent.offsetX + controllerWidth;
-      const {
-        startTime: barStartTime,
-        endTime: barEndTime,
-        duration: barDuration,
-      } = repeatViewState;
-      let overLength = 0;
-      const finalStartPosition = barLeft;
-      const finalEndPosition = barLeft + barWidth;
-      if (afterStartPosition < barLeft) {
-        overLength = barLeft - afterStartPosition;
-        accellorate = (barDuration * overLength) / barWidth;
+      const { clientX } = em;
+      const movedTime = convertLengthToTime(clientX - baseX);
+      afterStart += movedTime;
+      afterEnd += movedTime;
+      baseX = clientX;
+
+      if (afterStart < 0) {
+        afterStart = 0;
+        afterEnd = controlDuration;
       }
-      if (afterEndPosition > barLeft + barWidth) {
-        overLength = afterEndPosition - barLeft - barWidth;
-        accellorate = (barDuration * overLength) / barWidth;
-      } else {
-        accellorate = accellorate !== null ? null : accellorate;
+
+      if (afterEnd > duration) {
+        afterStart = duration - controlDuration;
+        afterEnd = duration;
       }
-      // controllerStartPosition = accellorate === null ? afterStartPosition : ;
-      // controllerEndPosition = afterEndPosition;
 
-      // let finalStartTime = convertPositionToTime(
-      //   controllerStartPosition,
-      //   barLeft,
-      //   barLeft + barWidth
-      // );
+      if (afterStart < timelineStartTime || afterEnd > timelineEndTime) {
+        if (roopId === null)
+          roopId = window.requestAnimationFrame(() =>
+            moveTimeLine(afterStart < timelineStartTime ? -0.001 : 0.001)
+          );
+        return;
+      }
 
-      // let finalEndTime = convertPositionToTime(
-      //   controllerEndPosition,
-      //   barLeft,
-      //   barLeft + barWidth
-      // );
+      setRepeatControllerState({
+        ...repeatControllerState,
+        startTime: afterStart,
+        endTime: afterEnd,
+      });
 
-      // if (finalStartTime < 0) {
-      //   finalStartTime = 0;
-      //   finalEndTime = repeatControllerState.endTime - repeatControllerState.startTime;
-      // }
-
-      // if (finalEndTime > videoDuration) {
-      //   finalEndTime = videoDuration;
-      //   finalStartTime =
-      //     videoDuration - repeatControllerState.endTime + repeatControllerState.startTime;
-      // }
-
-      // setrepeatControllerState({
-      //   startTime: finalStartTime,
-      //   endTime: finalEndTime,
-      // });
-      // moveCurrentTime(
-      //   convertPositionToTime(
-      //     (controllerStartPosition + controllerEndPosition) / 2,
-      //     barLeft,
-      //     barLeft + barWidth
-      //   )
-      // );
+      if (roopId === null) return;
+      console.log("roopId", roopId);
+      window.cancelAnimationFrame(roopId);
+      roopId = null;
+      speed = 0;
     }
-
     function mouseUpController() {
       document.removeEventListener("mousemove", mouseMoveController);
       document.removeEventListener("mouseup", mouseUpController);
+      if (roopId === null) return;
+      window.cancelAnimationFrame(roopId);
+      roopId = null;
+      speed = 0;
     }
-
     document.addEventListener("mousemove", mouseMoveController);
     document.addEventListener("mouseup", mouseUpController);
   }
@@ -227,80 +246,47 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
     if (
       videoRef === null ||
       repeatControllerRef.current === null ||
-      repeatBarRef.current === null
+      repeatTimeLineRef.current === null
     )
       return;
-    if (e.currentTarget !== e.target) return;
-    const { clientWidth: barWidth, offsetLeft: barLeft } = repeatBarRef.current;
-    const { clientWidth: controllerWidth, offsetLeft: controllerLeft } =
-      repeatControllerRef.current;
-    const {
-      startTime: repeatBarStartTime,
-      endTime: repeatBarEndTime,
-      duration: repeatDuration,
-    } = repeatViewState;
-    const minLength =
-      barWidth * (minTime / repeatDuration - repeatBarStartTime);
-    const maxLength =
-      barWidth * (maxTime / repeatDuration - repeatBarStartTime);
-    let edgePosition = 0;
-    let pointerToEdge = 0;
-    let limitStart = barLeft;
-    let limitEnd = barLeft + barWidth;
+    let { clientX: baseX } = e.nativeEvent;
+    const { startTime: timelineStartTime, endTime: timelineEndTime } =
+      repeatTimelineState;
+    const { startTime: controlStartTime, endTime: controlEndTime } =
+      repeatControllerState;
+    let afterTime = target === "start" ? controlStartTime : controlEndTime;
+    let moveMaxTime =
+      target === "start"
+        ? controlEndTime - minTime
+        : controlStartTime + maxTime;
+    let moveMinTime =
+      target === "start"
+        ? controlEndTime - maxTime
+        : controlStartTime + minTime;
+
+    moveMaxTime = moveMaxTime > timelineEndTime ? timelineEndTime : moveMaxTime;
+    moveMinTime =
+      moveMinTime < timelineStartTime ? timelineStartTime : moveMinTime;
 
     if (!videoRef.paused) videoRef.pause();
 
-    if (target === "start") {
-      edgePosition = barLeft + controllerLeft;
-      pointerToEdge = e.pageX - edgePosition;
-      const demoLimitStart = edgePosition + controllerWidth - maxLength;
-      limitStart = demoLimitStart < limitStart ? limitStart : demoLimitStart;
-      limitEnd = edgePosition + controllerWidth - minLength;
-    } else {
-      edgePosition = barLeft + controllerLeft + controllerWidth;
-      pointerToEdge = edgePosition - e.pageX;
-      const demoLimitEnd = edgePosition - controllerWidth + maxLength;
-      limitEnd = demoLimitEnd > limitEnd ? limitEnd : demoLimitEnd;
-      limitStart = edgePosition - controllerWidth + minLength;
-    }
-
     function mouseMoveEdge(em: MouseEvent) {
       em.preventDefault();
-      let afterEdgePoint =
-        target === "start"
-          ? em.pageX - pointerToEdge
-          : em.pageX + pointerToEdge;
-
-      if (afterEdgePoint > limitEnd) afterEdgePoint = limitEnd;
-      if (afterEdgePoint < limitStart) afterEdgePoint = limitStart;
-      if (afterEdgePoint === edgePosition) return;
-      edgePosition = afterEdgePoint;
-      const convertedTime = convertPositionToTime(
-        edgePosition,
-        barLeft,
-        barLeft + barWidth
-      );
-      let finalTime = 0;
-      if (target === "start") {
-        finalTime =
-          convertedTime < repeatBarStartTime
-            ? repeatBarStartTime
-            : convertedTime;
-        setRepeatControllerState({
-          ...repeatControllerState,
-          startTime: finalTime,
-        });
-      } else {
-        finalTime =
-          convertedTime > repeatBarEndTime ? repeatBarEndTime : convertedTime;
-        setRepeatControllerState({
-          ...repeatControllerState,
-          endTime: finalTime,
-        });
-      }
-      moveCurrentTime(finalTime);
+      const { clientX } = em;
+      afterTime += convertLengthToTime(clientX - baseX);
+      baseX = clientX;
+      afterTime = moveMaxTime < afterTime ? moveMaxTime : afterTime;
+      afterTime = moveMinTime > afterTime ? moveMinTime : afterTime;
+      setRepeatControllerState({
+        ...repeatControllerState,
+        duration:
+          target === "start"
+            ? controlEndTime - afterTime
+            : afterTime - controlStartTime,
+        [target === "start" ? "startTime" : "endTime"]: afterTime,
+      });
+      moveCurrentTime(afterTime);
     }
-
     function mouseUpEdge() {
       document.removeEventListener("mousemove", mouseMoveEdge);
       document.removeEventListener("mouseup", mouseUpEdge);
@@ -328,12 +314,12 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
 
   useEffect(() => {
     if (!isRepeat) return;
-    setInitRepeatViewState();
+    setInitrepeatTimelineState();
   }, [videoRef, isRepeat]);
 
   useEffect(() => {
     setRepeatControllerPosition();
-  }, [repeatViewState, repeatControllerState]);
+  }, [repeatTimelineState, repeatControllerState]);
 
   useEffect(() => {
     if (!isRepeat || videoRef === null) return undefined;
@@ -351,7 +337,7 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
       </div>
       {isRepeat && (
         <>
-          <div id="repeatBar" ref={repeatBarRef}>
+          <div id="repeatBar" ref={repeatTimeLineRef}>
             <div
               id="repeatController"
               ref={repeatControllerRef}
@@ -386,8 +372,8 @@ function RepeatBar({ videoRef, moveCurrentTime }: RepeatBarProps) {
             </div>
           </div>
           <div id="timeViewer">
-            <p>{parseTimeDate(repeatViewState.startTime)}</p>
-            <p>{parseTimeDate(repeatViewState.endTime)}</p>
+            <p>{parseTimeDate(repeatTimelineState.startTime)}</p>
+            <p>{parseTimeDate(repeatTimelineState.endTime)}</p>
           </div>
         </>
       )}

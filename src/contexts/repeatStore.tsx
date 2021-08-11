@@ -1,6 +1,6 @@
 import React, { createContext, useState } from "react";
 
-interface repeatViewStateType {
+interface repeatTimelineStateType {
   startTime: number;
   endTime: number;
   duration: number;
@@ -19,14 +19,14 @@ interface repeatOptionType {
 
 interface RepeatStoreType {
   state: {
-    repeatViewState: repeatViewStateType;
+    repeatTimelineState: repeatTimelineStateType;
     repeatControllerState: repeatControllerStateType;
     repeatOption: repeatOptionType;
     isRepeat: boolean;
   };
   action: {
-    setRepeatViewState: React.Dispatch<
-      React.SetStateAction<repeatViewStateType>
+    setRepeatTimelineState: React.Dispatch<
+      React.SetStateAction<repeatTimelineStateType>
     >;
     setRepeatControllerState: React.Dispatch<
       React.SetStateAction<repeatControllerStateType>
@@ -38,7 +38,7 @@ interface RepeatStoreType {
 
 const defaultRepeatStoreData: RepeatStoreType = {
   state: {
-    repeatViewState: {
+    repeatTimelineState: {
       startTime: 0,
       endTime: 0,
       duration: 0,
@@ -55,7 +55,7 @@ const defaultRepeatStoreData: RepeatStoreType = {
     isRepeat: false,
   },
   action: {
-    setRepeatViewState: () => undefined,
+    setRepeatTimelineState: () => undefined,
     setRepeatControllerState: () => undefined,
     setRepeatOption: () => undefined,
     setIsRepeat: () => undefined,
@@ -64,9 +64,9 @@ const defaultRepeatStoreData: RepeatStoreType = {
 
 const repeatStore = createContext(defaultRepeatStoreData);
 
-const RepeatProvider = ({ children }: React.HTMLAttributes<any>) => {
-  const [repeatViewState, setRepeatViewState] = useState(
-    defaultRepeatStoreData.state.repeatViewState
+const RepeatProvider = ({ children }: { children: React.ReactNode }) => {
+  const [repeatTimelineState, setRepeatTimelineState] = useState(
+    defaultRepeatStoreData.state.repeatTimelineState
   );
   const [repeatControllerState, setRepeatControllerState] = useState(
     defaultRepeatStoreData.state.repeatControllerState
@@ -79,9 +79,14 @@ const RepeatProvider = ({ children }: React.HTMLAttributes<any>) => {
   );
 
   const value: typeof defaultRepeatStoreData = {
-    state: { repeatViewState, repeatControllerState, repeatOption, isRepeat },
+    state: {
+      repeatTimelineState,
+      repeatControllerState,
+      repeatOption,
+      isRepeat,
+    },
     action: {
-      setRepeatViewState,
+      setRepeatTimelineState,
       setRepeatControllerState,
       setRepeatOption,
       setIsRepeat,

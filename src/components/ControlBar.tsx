@@ -10,8 +10,18 @@ interface ControlBarProps {
 
 function ControlBar({ videoRef, moveCurrentTime, skipTime }: ControlBarProps) {
   const { state: repeatState, action: repeatAction } = useContext(repeatStore);
-  const { isRepeat, repeatControllerState } = repeatState;
-  const { setRepeatControllerState } = repeatAction;
+  const { isRepeat, repeatControllerState, repeatTimelineState } = repeatState;
+  const {
+    startTime: repeatStart,
+    endTime: repeatEnd,
+    duration: repeatDuration,
+  } = repeatControllerState;
+  const {
+    startTime: repeatTimelineStartTime,
+    endTime: repeatTimelineEndTime,
+    duration: repeatTimelineDuration,
+  } = repeatTimelineState;
+  const { setRepeatControllerState, setRepeatTimelineState } = repeatAction;
   const progressBarRef = useRef<HTMLDivElement | null>(null);
   const startDimmedRef = useRef<HTMLDivElement | null>(null);
   const endDimmedRef = useRef<HTMLDivElement | null>(null);
@@ -32,38 +42,60 @@ function ControlBar({ videoRef, moveCurrentTime, skipTime }: ControlBarProps) {
     if (!videoRef.paused) window.requestAnimationFrame(timeUpdateVideo);
   }
 
-  function changerepeatControllerState(
-    targetTime: number,
-    targetOrigin?: "start" | "end"
-  ) {
+  function changeReapeatState(targetTime: number, option?: "start" | "end") {
     if (videoRef === null) return;
-    const repeatControllerStateLength =
-      repeatControllerState.endTime - repeatControllerState.startTime;
-    let afterRepeatStartTime = targetTime - repeatControllerStateLength / 2;
-    let afterRepeatEndTime = targetTime + repeatControllerStateLength / 2;
+    let afterRepeatStart = targetTime - repeatDuration / 2;
+    let afterRepeatEnd = targetTime + repeatDuration / 2;
+    let afterRepeatTimelineStart = targetTime - repeatTimelineDuration / 2;
+    let afterRepeatTimelineEnd = targetTime + repeatTimelineDuration / 2;
 
-    if (targetOrigin === "start") {
-      afterRepeatStartTime = targetTime;
-      afterRepeatEndTime = targetTime + repeatControllerStateLength;
+    if (option === "start") {
+      afterRepeatStart = targetTime;
+      afterRepeatEnd = targetTime + repeatDuration;
+      afterRepeatTimelineStart = targetTime;
+      afterRepeatTimelineEnd = targetTime + repeatTimelineDuration;
     }
 
-    if (targetOrigin === "end") {
-      afterRepeatStartTime = targetTime - repeatControllerStateLength;
-      afterRepeatEndTime = targetTime;
+    if (option === "end") {
+      afterRepeatStart = targetTime - repeatDuration;
+      afterRepeatEnd = targetTime;
+      afterRepeatTimelineStart = targetTime - repeatTimelineDuration;
+      afterRepeatTimelineEnd = targetTime;
     }
 
-    if (afterRepeatStartTime < 0) {
-      afterRepeatStartTime = 0;
-      afterRepeatEndTime = repeatControllerStateLength;
-    } else if (afterRepeatEndTime > videoRef.duration) {
-      afterRepeatStartTime = videoRef.duration - repeatControllerStateLength;
-      afterRepeatEndTime = videoRef.duration;
+    if (afterRepeatStart < 0) {
+      afterRepeatStart = 0;
+      afterRepeatEnd = repeatDuration;
+    }
+
+    if (afterRepeatEnd > videoRef.duration) {
+      afterRepeatStart = videoRef.duration - repeatDuration;
+      afterRepeatEnd = videoRef.duration;
+    }
+
+    if (afterRepeatTimelineStart < 0) {
+      afterRepeatTimelineStart = 0;
+      afterRepeatTimelineEnd = repeatTimelineDuration;
+    }
+
+    if (afterRepeatTimelineEnd > videoRef.duration) {
+      afterRepeatTimelineStart = videoRef.duration - repeatTimelineDuration;
+      afterRepeatTimelineEnd = videoRef.duration;
     }
 
     setRepeatControllerState({
-      startTime: afterRepeatStartTime,
-      endTime: afterRepeatEndTime,
-      duration: afterRepeatEndTime - afterRepeatStartTime,
+      ...repeatControllerState,
+      startTime: afterRepeatStart,
+      endTime: afterRepeatEnd,
+    });
+
+    if (option === "start" && targetTime > repeatTimelineStartTime) return;
+    if (option === "end" && targetTime < repeatTimelineEndTime) return;
+
+    setRepeatTimelineState({
+      ...repeatTimelineState,
+      startTime: afterRepeatTimelineStart,
+      endTime: afterRepeatTimelineEnd,
     });
   }
 
@@ -73,37 +105,34 @@ function ControlBar({ videoRef, moveCurrentTime, skipTime }: ControlBarProps) {
     const { duration, paused } = videoRef;
     let targetTimeLength = e.pageX - offsetLeft;
     let targetTime = duration * (targetTimeLength / clientWidth);
-    const isChangerepeatControllerState =
-      isRepeat &&
-      (targetTime < repeatControllerState.startTime ||
-        targetTime > repeatControllerState.endTime);
 
     if (!paused) videoRef.pause();
-    if (isChangerepeatControllerState) {
-      changerepeatControllerState(targetTime);
-    }
     moveCurrentTime(targetTime);
     timeUpdateVideo();
+
+    const isOverRepeatRange =
+      isRepeat && (targetTime < repeatStart || targetTime > repeatEnd);
+
+    if (isOverRepeatRange) {
+      changeReapeatState(targetTime);
+    }
 
     function mouseMoveControlBar(em: MouseEvent) {
       em.preventDefault();
       if (targetTimeLength === em.pageX - offsetLeft) return;
       targetTimeLength = em.pageX - offsetLeft;
       targetTime = duration * (targetTimeLength / clientWidth);
-      if (isChangerepeatControllerState) {
-        changerepeatControllerState(targetTime);
-      }
-      if (
-        targetTime < repeatControllerState.startTime ||
-        targetTime > repeatControllerState.endTime
-      ) {
-        changerepeatControllerState(
-          targetTime,
-          targetTime < repeatControllerState.startTime ? "start" : "end"
-        );
-      }
+
       moveCurrentTime(targetTime);
       timeUpdateVideo();
+
+      if (isOverRepeatRange) {
+        changeReapeatState(targetTime);
+      } else if (targetTime < repeatStart) {
+        changeReapeatState(targetTime, "start");
+      } else if (targetTime > repeatEnd) {
+        changeReapeatState(targetTime, "end");
+      }
     }
 
     function mouseUpControlBar() {
@@ -148,9 +177,15 @@ function ControlBar({ videoRef, moveCurrentTime, skipTime }: ControlBarProps) {
 
   useEffect(() => {
     if (videoRef === null) return undefined;
+    const isPausedUpdateVideo = () => {
+      if (!videoRef.paused) return;
+      timeUpdateVideo();
+    };
     videoRef.addEventListener("playing", timeUpdateVideo);
+    videoRef.addEventListener("timeupdate", isPausedUpdateVideo);
     return () => {
       videoRef.removeEventListener("playing", timeUpdateVideo);
+      videoRef.removeEventListener("timeupdate", isPausedUpdateVideo);
     };
   }, [videoRef]);
 
